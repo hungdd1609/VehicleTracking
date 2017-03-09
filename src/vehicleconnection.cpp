@@ -67,6 +67,6 @@ void VehicleConnection::run()
     exec()  ;
     if(connectionDatabase){
         delete connectionDatabase;
-        connectionDatabase = NULL;//skjgh
+        connectionDatabase = NULL;//skjgh11111111111111
     }
 }
