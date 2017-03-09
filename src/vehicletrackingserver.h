@@ -10,13 +10,18 @@ class VehicleTrackingServer : public QObject
 {
     Q_OBJECT
 public:
+    VehicleTrackingServer(QDateTime begin, int threshold, int listenPort);
     VehicleTrackingServer();
 private:
     CprTfcDatabase *serverDatabase;
     QTimer *mainTimer;
     QTcpServer *tcpServer;
-    int listenPort, maxPendingConnection;
+    int listenPort, maxPendingConnection, dataStorageTime;
     QList <VehicleConnection *>connectionList;
+
+    //for insert test data
+    QDateTime begin;
+    int threshold;
 
 signals:
 
