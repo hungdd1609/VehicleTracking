@@ -52,11 +52,19 @@ typedef struct DevInfor{
     char NameDevice[20]; // tên thiet bi
     char Type[20];// seri
 }DevInfor;
+//---------------------------------------------------------------
+typedef struct Event{// su kien ve van toc
+    GpsInt GpsN;
+    unsigned char Speedlm;
+    unsigned char SpeedNlm;
+}Event;
+Event EventSpeed;
 //------------------------------------------------------------------------------
 #define TIME_SEND_DATA_SERVER 20
 typedef struct TrainAbsRec{
     unsigned long KmM;
-    unsigned char TrainLabel;
+    unsigned char TrainName;// id tuyen tau
+    unsigned char TrainLabel;// id mac tau
     long Long1s;
     long Lat1s;
     SDateTime TimeNow1s;
@@ -79,10 +87,12 @@ enum LogRecType{
     REC_USER_SIGNOUT,//Ban ghi su kien nguoi dang xuat
     REC_USER_OVERTIME,//Qua thoi gian
     REC_VEHICLE_STOP,// dung
-    REC_VEHICLE_RUN,//Xe khoi hanh
-    REC_DIRVER_OVER_DAY,//Lai qua ngay
-    REC_DIRVER_OVER_SPEED,//Qua toc do
-    REC_TRAIN,//Ban ghi tau hoa
+    REC_VEHICLE_RUN,
+    REC_DIRVER_OVER_DAY,
+    REC_DIRVER_OVER_SPEED,
+    REC_TRAIN,
+    REC_TRAIN_OVER_SPEED,
+    REC_TRAIN_CHANGE_SPEED_LIMIT,
 }LogRecType;
 
 
@@ -316,9 +326,13 @@ void VehicleConnection::slot_readyRead(){
     qDebug()<< "VehicleConnection::slot_readyRead()";
     if(tcpSocket->canReadLine()){
         QByteArray input = tcpSocket->readAll();
+
+        QString s="";
         for(int i=0; i < input.length(); i++) {
-            Sys7bInput(input[i]);
+            Sys7bInput(input.at(i));
+            s=s+ QString(input.at(i)) + "";
         }
+        qDebug() << s;
 
 
         //        QSqlQuery query;
