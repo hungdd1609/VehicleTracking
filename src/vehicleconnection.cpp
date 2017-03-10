@@ -247,9 +247,20 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             qDebug() <<"Qua van toc";
             break;
         case REC_TRAIN:
-            memcpy(&TraiRevRec,&Pck+1,sizeof(TrainAbsRec));
+            memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
             qDebug() << "Ban ghi tau hoa";
-            TrainRecStr.sprintf("Train:%d ->%d/%d/%d %d:%d:%d Lat%ld Long%ld Km %d M%d",TraiRevRec.TrainLabel,TraiRevRec.TimeNow1s.Day,TraiRevRec.TimeNow1s.Month,TraiRevRec.TimeNow1s.Year,TraiRevRec.TimeNow1s.Hour,TraiRevRec.TimeNow1s.Min,TraiRevRec.TimeNow1s.Sec,TraiRevRec.Lat1s,TraiRevRec.Long1s,TraiRevRec.KmM/1000,TraiRevRec.KmM%1000);
+            TrainRecStr.sprintf("Train:%d ->%d/%d/%d %d:%d:%d Lat%ld Long%ld Km %d M%d"
+                                ,TraiRevRec.TrainLabel
+                                ,TraiRevRec.TimeNow1s.Day
+                                ,TraiRevRec.TimeNow1s.Month
+                                ,TraiRevRec.TimeNow1s.Year
+                                ,TraiRevRec.TimeNow1s.Hour
+                                ,TraiRevRec.TimeNow1s.Min
+                                ,TraiRevRec.TimeNow1s.Sec
+                                ,TraiRevRec.Lat1s
+                                ,TraiRevRec.Long1s
+                                ,TraiRevRec.KmM/1000
+                                ,TraiRevRec.KmM%1000);
             qDebug() <<TrainRecStr;
             TrainRecStr="Speed:";
             for(i=0;i<TIME_SEND_DATA_SERVER;i++){
@@ -264,6 +275,80 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 TrainRecStr=TrainRecStr+QString::number(TraiRevRec.PresBuff[i])+" ";
             }
             qDebug() <<TrainRecStr;
+
+
+            //insert train's data to tbl_trainlog
+            QString time = QString("M%1d%2y%3%4:%5:%6")
+                    .arg(TraiRevRec.TimeNow1s.Month)
+                    .arg(TraiRevRec.TimeNow1s.Day)
+                    .arg(TraiRevRec.TimeNow1s.Year)
+                    .arg(TraiRevRec.TimeNow1s.Hour)
+                    .arg(TraiRevRec.TimeNow1s.Min)
+                    .arg(TraiRevRec.TimeNow1s.Sec);
+            QDateTime trainTime = QDateTime::fromString(time, "'M'M'd'd'y'yyhh:mm:ss");
+            qDebug() << trainTime.toString("yyyy-MM-dd hh:mm:ss");
+            QString sqlInsertTrainLog = QString("INSERT INTO tbl_trainlog ("
+                                                "trainlog_trainid, "
+                                                "trainlog_latitude, "
+                                                "trainlog_longitude, "
+                                                "trainlog_time, "
+                                                "trainlog_lytrinh, "
+                                                "trainlog_speed, "
+                                                "trainlog_pressure, "
+                                                "trainlog_lastupdate, "
+                                                "trainlog_rawdata) "
+                                                "VALUES (%1, %2, %3, %4, %5, %6, %7, %8, %9) ")
+                    .arg(TraiRevRec.TrainLabel)
+                    .arg(TraiRevRec.Lat1s)
+                    .arg(TraiRevRec.Long1s)
+                    .arg(trainTime.toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg("ly trinh")
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg("abcd");
+
+            //insert or update into tbl_train
+            QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ( "
+                                                     "train_id, "
+                                                     "train_label, "
+                                                     "train_group, "
+                                                     "train_longitude, "
+                                                     "train_latitude, "
+                                                     "train_time, "
+                                                     "train_speed, "
+                                                     "train_pressure, "
+                                                     "train_lytrinhview, "
+                                                     "train_lytrinh, "
+                                                     "train_lastupdate) "
+                                                     "VALUES (%1, %2, %3, %4, '%5', '%6', %7, '%8', '%9', %10, %11) "
+                                                     "ON DUPLICATE KEY UPDATE "
+                                                     "train_label = %2, "
+                                                     "train_group = %3, "
+                                                     "train_longitude = %4, "
+                                                     "train_latitude = %5, "
+                                                     "train_time = %6, "
+                                                     "train_speed = %7, "
+                                                     "train_pressure = %8, "
+                                                     "train_lytrinhview = %9, "
+                                                     "train_lytrinh = %10, "
+                                                     "train_lastupdate = %11")
+                    .arg(TraiRevRec.TrainLabel)
+                    .arg(TraiRevRec.TrainName)
+                    .arg("group")
+                    .arg(TraiRevRec.Long1s)
+                    .arg(TraiRevRec.Lat1s)
+                    .arg(trainTime.toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg("ly trinh view")
+                    .arg("ly trinh")
+                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+
+            if(connectionDatabase && connectionDatabase->execQuery(sqlInsertTrainLog)){
+                qDebug() << QString("Train id: %1 - inserted train log").arg(TraiRevRec.TrainLabel);
+            }
+
             break;
         }
 
@@ -275,6 +360,15 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
+
+        QString sqlScanTrain = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(HardDev.NameDevice);
+
+        if(connectionDatabase && connectionDatabase->execQuery(sqlScanTrain)){
+
+        } else{
+
+        }
+
         break;
     default:
         qDebug() <<"UnKnowCmd";
@@ -358,6 +452,14 @@ void VehicleConnection::slot_socketError(QAbstractSocket::SocketError socketErro
 void VehicleConnection::slot_socketDestroyed(){
     qDebug()<< "VehicleConnection::slot_socketDestroyed()";
 }
+
+void VehicleConnection::slot_requestInfoTimer()(){
+    unsigned char PSBuff[10]={0x80};
+    qDebug() << "i'm server";
+    SendPck(PSBuff,1,CMD_SYS_GET,0);
+    qDebug() << "what 's your name ?";
+}
+
 void VehicleConnection::run()
 {
     connect(tcpSocket, SIGNAL(readyRead()),this, SLOT(slot_readyRead()));
@@ -373,6 +475,12 @@ void VehicleConnection::run()
     connectionTimer = new QTimer(this);
     connect(connectionTimer, SIGNAL(timeout()), this, SLOT(slot_connectionTimer_timeout()));
     connectionTimer->start(1000);
+
+    //hoi ten sau 15p
+    requestInfoTimer = new QTimer(this);
+    connect(requestInfoTimer, SIGNAL(readyRead()), this, SLOT(slot_requestInfoTimer));
+    requestInfoTimer->start(900000);
+
     connectionDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","VehicleConnection");
     exec()  ;
     if(connectionDatabase){

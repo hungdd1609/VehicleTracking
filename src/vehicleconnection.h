@@ -17,6 +17,7 @@ public:
 private:
     CprTfcDatabase *connectionDatabase;
     QTimer *connectionTimer;
+    QTimer *requestInfoTimer;
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
     QString plateNumber;
@@ -32,6 +33,7 @@ private slots:
     void slot_socketDisconnected();
     void slot_socketError(QAbstractSocket::SocketError socketError);
     void slot_socketDestroyed();
+    void slot_requestInfoTimer();
 protected:
     void run();
 };
