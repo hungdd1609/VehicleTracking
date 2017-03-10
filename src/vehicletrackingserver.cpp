@@ -1,14 +1,14 @@
 #include "vehicletrackingserver.h"
 #include <QTcpSocket>
-VehicleTrackingServer::VehicleTrackingServer(QDateTime ibegin, int ithreshold, int ilistenPort)
-//VehicleTrackingServer::VehicleTrackingServer()
+//VehicleTrackingServer::VehicleTrackingServer(QDateTime ibegin, int ithreshold, int ilistenPort)
+VehicleTrackingServer::VehicleTrackingServer()
 {
     qApp->addLibraryPath(qApp->applicationDirPath() + "/plugins");
 
     QSettings iniFile(qApp->applicationDirPath() + "/VehicleTracking.ini", QSettings::IniFormat);
     iniFile.beginGroup("VehicleTrackingServer");
-    //listenPort = iniFile.value("ListenPort",1234).toInt();
-    listenPort = ilistenPort;
+    listenPort = iniFile.value("ListenPort",1234).toInt();
+    //listenPort = ilistenPort;
     maxPendingConnection = iniFile.value("MaxPendingConnection",1000).toInt();
     dataStorageTime  = iniFile.value("DataStorageTime",60).toInt();
 
@@ -28,6 +28,7 @@ VehicleTrackingServer::VehicleTrackingServer(QDateTime ibegin, int ithreshold, i
     mainTimer->start(1000);
 
     //insert test
+    /*
     threshold = ithreshold;
     begin = ibegin;
     QDateTime tmpTime = ibegin;
@@ -59,6 +60,7 @@ VehicleTrackingServer::VehicleTrackingServer(QDateTime ibegin, int ithreshold, i
         tmpTime = tmpTime.addSecs(1);
     }
     qDebug() << "---------done!--------------" << listenPort;
+    */
 }
 void VehicleTrackingServer::slot_mainTimer_timeout(){    
     //-/manage backup

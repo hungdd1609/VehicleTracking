@@ -21,6 +21,11 @@ private:
     QDateTime lastRecvTime;
     QString plateNumber;
     int state;
+    unsigned char SendPck(unsigned char* PayLoad,unsigned short PayLoadLen,unsigned char Cmd,unsigned char PckIdx);
+    void Sys7bProcessRevPck(unsigned char* Pck,unsigned short len);
+    void Sys7bInput(unsigned char data);
+
+
 private slots:
     void slot_connectionTimer_timeout();
     void slot_readyRead();

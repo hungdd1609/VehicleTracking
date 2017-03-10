@@ -10,7 +10,7 @@ class VehicleTrackingServer : public QObject
 {
     Q_OBJECT
 public:
-    VehicleTrackingServer(QDateTime begin, int threshold, int listenPort);
+    //VehicleTrackingServer(QDateTime begin, int threshold, int listenPort);
     VehicleTrackingServer();
 private:
     CprTfcDatabase *serverDatabase;
