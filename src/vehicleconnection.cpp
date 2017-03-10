@@ -347,6 +347,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
             if(connectionDatabase && connectionDatabase->execQuery(sqlInsertTrainLog)){
                 qDebug() << QString("Train id: %1 - inserted train log").arg(TraiRevRec.TrainLabel);
+                if(connectionDatabase && connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
+                    qDebug() << QString("Train id: %1 - inserted train").arg(TraiRevRec.TrainLabel);
+                }
             }
 
             break;
