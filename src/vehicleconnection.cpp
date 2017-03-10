@@ -206,10 +206,10 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         l=DecodeDataPack(Pck,len-3);
         switch(Pck[0]&0x3F){
         case REC_GPS_ABS://Ban ghi Gps tuyet doi
-                                         qDebug() <<"Ban ghi tuyet doi";
+            qDebug() <<"Ban ghi tuyet doi";
             break;
         case REC_GPS_DIF://Ban ghi GPS tuong doi
-                                         qDebug() <<"Ban ghi tuong doi";
+            qDebug() <<"Ban ghi tuong doi";
             break;
         case REC_USER_SIGNIN://Ban ghi su kien nguoi dang nhap
             memcpy(&Usr,Pck,l);
@@ -222,38 +222,38 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.DateTime.Day,Usr.GPS.DateTime.Month,Usr.GPS.DateTime.Year,Usr.GPS.DateTime.Hour,Usr.GPS.DateTime.Min,Usr.GPS.DateTime.Sec);
             break;
         case REC_USER_OVERTIME://Qua thoi gian
-                                          qDebug() <<"Qua thoi gian";
+            qDebug() <<"Qua thoi gian";
             break;
         case REC_VEHICLE_STOP:// dung
-                                            qDebug() <<"Dung xe";
+            qDebug() <<"Dung xe";
             break;
         case REC_VEHICLE_RUN:
-                                            qDebug() <<"Do xe";
+            qDebug() <<"Do xe";
             break;
         case REC_DIRVER_OVER_DAY:
-                                            qDebug() <<"Lai qua ngay";
+            qDebug() <<"Lai qua ngay";
             break;
         case REC_DIRVER_OVER_SPEED:
-                                            qDebug() <<"Qua van toc";
+            qDebug() <<"Qua van toc";
             break;
         case REC_TRAIN:
             memcpy(&TraiRevRec,&Pck+1,sizeof(TrainAbsRec));
-                                            qDebug() << "Ban ghi tau hoa";
+            qDebug() << "Ban ghi tau hoa";
             TrainRecStr.sprintf("Train:%d ->%d/%d/%d %d:%d:%d Lat%ld Long%ld Km %d M%d",TraiRevRec.TrainLabel,TraiRevRec.TimeNow1s.Day,TraiRevRec.TimeNow1s.Month,TraiRevRec.TimeNow1s.Year,TraiRevRec.TimeNow1s.Hour,TraiRevRec.TimeNow1s.Min,TraiRevRec.TimeNow1s.Sec,TraiRevRec.Lat1s,TraiRevRec.Long1s,TraiRevRec.KmM/1000,TraiRevRec.KmM%1000);
-                                            qDebug() <<TrainRecStr;
+            qDebug() <<TrainRecStr;
             TrainRecStr="Speed:";
             for(i=0;i<TIME_SEND_DATA_SERVER;i++){
                 //TrainRecStr=TrainRecStr+IntToStr(TraiRevRec.SpeedBuff[i])+",";
                 TrainRecStr=TrainRecStr+QString::number(TraiRevRec.SpeedBuff[i])+" ";
             }
-                                            qDebug() <<TrainRecStr;
+            qDebug() <<TrainRecStr;
 
             TrainRecStr="Presure:";
             for(i=0;i<TIME_SEND_DATA_SERVER;i++){
                 //TrainRecStr=TrainRecStr+IntToStr(TraiRevRec.PresBuff[i])+",";
                 TrainRecStr=TrainRecStr+QString::number(TraiRevRec.PresBuff[i])+" ";
             }
-                                            qDebug() <<TrainRecStr;
+            qDebug() <<TrainRecStr;
             break;
         }
 
@@ -261,13 +261,13 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     case CMD_BIRDIR_ACK:
         break;
     case CMD_SYS_GET:
-                           qDebug() <<"CMD_SYS_GET";
+        qDebug() <<"CMD_SYS_GET";
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
-                           qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
+        qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
         break;
     default:
-                            qDebug() <<"UnKnowCmd";
+        qDebug() <<"UnKnowCmd";
         break;
     }
 }
@@ -276,31 +276,31 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
 void VehicleConnection::Sys7bInput(unsigned char data)
 {
- static unsigned short Sys7bREvIdx=0;
- unsigned char crc;
- unsigned short i;
- if(Sys7bREvIdx<SYS7B_REV_BUFF_SIZE){
-      if(data==255){//nhan duoc byte bao hieu ket thuc goi tin
-        crc=Sys7bRevBuff[0];
-        for(i=0;i<Sys7bREvIdx-1;i++){
+    static unsigned short Sys7bREvIdx=0;
+    unsigned char crc;
+    unsigned short i;
+    if(Sys7bREvIdx<SYS7B_REV_BUFF_SIZE){
+        if(data==255){//nhan duoc byte bao hieu ket thuc goi tin
+            crc=Sys7bRevBuff[0];
+            for(i=0;i<Sys7bREvIdx-1;i++){
                 crc^=Sys7bRevBuff[i];
-        }
-        crc&=0x7F;
-        if(crc==Sys7bRevBuff[Sys7bREvIdx-1]){
-             Sys7bProcessRevPck(Sys7bRevBuff,Sys7bREvIdx);
+            }
+            crc&=0x7F;
+            if(crc==Sys7bRevBuff[Sys7bREvIdx-1]){
+                Sys7bProcessRevPck(Sys7bRevBuff,Sys7bREvIdx);
+            }else{
+                qDebug() << "PackCrcError";
+            }
         }else{
-             qDebug() << "PackCrcError";
-        }
-      }else{
-        if(data>=128){
+            if(data>=128){
                 Sys7bREvIdx=0;
+            }
         }
-      }
-      Sys7bRevBuff[Sys7bREvIdx]=data;
-      Sys7bREvIdx++;
- }else{
-      Sys7bREvIdx=0;
- }
+        Sys7bRevBuff[Sys7bREvIdx]=data;
+        Sys7bREvIdx++;
+    }else{
+        Sys7bREvIdx=0;
+    }
 }
 //----------------------------------------------------------
 
@@ -321,12 +321,12 @@ void VehicleConnection::slot_readyRead(){
         }
 
 
-//        QSqlQuery query;
-//        if(connectionDatabase && connectionDatabase->execQuery(query, str)){
-//            qDebug()<<"query Size" << query.size();
-//            if(query.next())
-//                qDebug()<<"query Value" << query.value(0).toString();
-//        }
+        //        QSqlQuery query;
+        //        if(connectionDatabase && connectionDatabase->execQuery(query, str)){
+        //            qDebug()<<"query Size" << query.size();
+        //            if(query.next())
+        //                qDebug()<<"query Value" << query.value(0).toString();
+        //        }
     }
 }
 
@@ -350,7 +350,11 @@ void VehicleConnection::run()
     connect(tcpSocket, SIGNAL(disconnected()), this, SLOT(slot_socketDisconnected()));
     connect(tcpSocket, SIGNAL(disconnected()), tcpSocket, SLOT(deleteLater()));
     connect(tcpSocket, SIGNAL(destroyed()), this, SLOT(slot_socketDestroyed()));
-    tcpSocket->write("HELLO\r\n");
+
+    unsigned char PSBuff[10]={0x80};
+    qDebug() << "i'm server";
+    SendPck(PSBuff,1,CMD_SYS_GET,0);
+    qDebug() << "what 's your name ?";
 
     connectionTimer = new QTimer(this);
     connect(connectionTimer, SIGNAL(timeout()), this, SLOT(slot_connectionTimer_timeout()));
