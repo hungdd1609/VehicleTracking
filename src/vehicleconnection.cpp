@@ -3,14 +3,38 @@
 #include <string.h>
 static const unsigned char bitmap[]={1,2,4,8,16,32,64,128};
 
+typedef char* railway;// ten tuyen
+railway const name_way_flash[max_name_way] =
+{
+    " THONG NHAT       ",
+    " HA NOI-LAO CAI   ",
+    " HA NOI-HAI PHONG ",
+    " HA NOI-DONG DANG ",
+    " LAM THAO-YEN BAI ",
+    " YEN VIEN-HA LONG " ,
+    " YEN BAI-XUAN GIAO"
+};
+railway const name_way[max_name_way] = {"TH-NH","HN-LC","HN-HP", "HN-DD", "LT-YB", "YV-HL", "YB-XG"};
+railway const name_way_mac[max_name_way][max_name_mac] = { // tên mac tàu
+                                                           {" SE1 " , " SE3 " , " SE5 " , " SE7 " , " TN1 " , " SE2 " , " SE4 " , " SE6 " , " SE8 " , " TN2 " , " NA1 " , " NA3 " , " VD31"  , " DH41"  , " NA2 " , " NA4 " , " VD32"  , " DH42"  , "THbn1"  , "THbn2"   , " TH1 " , " TH2 ",  " THb1"  , " THb2", "     ", "     ", "     ", "     "},// thong nhat
+                                                           {" SP1 " , " SP3 " , " SP5 " , " LC1 " , " LC3 " , " LC5 " , " LC7 " , " YB1 " , " SP2 " , " SP4 " , " SP6 " , " LC2 " , " LC4 "  , " LC6 "  , " LC8 " , " LC10" , " LC9 "  , " YB2 "  , " SP7 "  , " SP8 "   , " TH1 " , " TH2 ",  " THb1"  , " THb2", "     ", "     ", "     ", "     "},
+                                                           {" HP1 " , " LP3 " , " LP5 " , " LP7 " , " HP2 " , " LP2 " , " LP6 " , " LP8 " , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1"  , " THd2"  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" M1  " , " M3  " , " DD3 " , " M2  " , " M4  " , " DD4 " , " TH1 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" TH1" , " TH2" ,   "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" R157" , " HLr1" , " R158" , " HLr2" , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" TH1 " , " TH2 " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " , "    "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                         };
+
 VehicleConnection::VehicleConnection()
 {
     connectionDatabase = NULL;
     state=0;
     plateNumber.clear();
+    rawData.clear();
 }
 VehicleConnection::VehicleConnection(QTcpSocket *socket){
     plateNumber.clear();
+    rawData.clear();
     connectionDatabase = NULL;
     moveToThread(this);
     tcpSocket = socket;
@@ -127,6 +151,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     int eventpck=0;
     unsigned char l,i;
     QString eTime,TrainRecStr;
+    int trainId = 0;
     PBuff[0]=128;
     TotalRevPCk++;
 
@@ -175,8 +200,95 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             QDateTime gpsTime;
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
-            //qDebug() << "Pck" <<sizeof(TrainAbsRec)<< Pck[0] << Pck[1] << Pck[2] << Pck[3] << QByteArray((char *)Pck+1,sizeof(TrainAbsRec)).toHex();
-            qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss") << "KmM" << TraiRevRec.KmM << "Latitude" << TraiRevRec.Lat1s << "Longitude" <<TraiRevRec.Long1s;
+            qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss") << "KmM" << TraiRevRec.KmM << "Latitude" << TraiRevRec.Lat1s << "Longitude" <<TraiRevRec.Long1s << "train label" <<TraiRevRec.TrainLabel << "train name" << TraiRevRec.TrainName;
+
+            //            TrainRecStr="Speed:";
+            //            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
+            //                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.SpeedBuff[i])+" ";
+            //            }
+            //            qDebug() <<TrainRecStr;
+
+            //            TrainRecStr="Presure:";
+            //            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
+            //                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.PresBuff[i])+" ";
+            //            }
+            //            qDebug() <<TrainRecStr;
+
+            QString d = QString::number(TraiRevRec.TrainName);
+            trainId = d.toInt() + 1;
+            qDebug() << trainId;
+            //insert train's data to tbl_trainlog
+            QString sqlInsertTrainLog = QString("INSERT INTO tbl_trainlog ("
+                                                "trainlog_trainid, "
+                                                "trainlog_latitude, "
+                                                "trainlog_longitude, "
+                                                "trainlog_time, "
+                                                "trainlog_lytrinh, "
+                                                "trainlog_speed, "
+                                                "trainlog_pressure, "
+                                                "trainlog_lastupdate, "
+                                                "trainlog_rawdata) "
+                                                "VALUES (%1, %2, %3, '%4', %5, %6, %7, '%8', '%9') ")
+                    .arg(trainId)
+                    .arg(TraiRevRec.Lat1s)
+                    .arg(TraiRevRec.Long1s)
+                    .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(TraiRevRec.KmM)
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(rawData);
+
+
+            //insert or update into tbl_train
+            QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ( "
+                                                     "train_id, "
+                                                     "train_label, "
+                                                     "train_group, "
+                                                     "train_longitude, "
+                                                     "train_latitude, "
+                                                     "train_time, "
+                                                     "train_speed, "
+                                                     "train_pressure, "
+                                                     "train_lytrinhview, "
+                                                     "train_lytrinh, "
+                                                     "train_lastupdate) "
+                                                     "VALUES (%1, '%2', %3, %4, %5, '%6', %7, %8, '%9', %10, '%11') "
+                                                     "ON DUPLICATE KEY UPDATE "
+                                                     "train_label = '%2', "
+                                                     "train_group = %3, "
+                                                     "train_longitude = %4, "
+                                                     "train_latitude = %5, "
+                                                     "train_time = '%6', "
+                                                     "train_speed = %7, "
+                                                     "train_pressure = %8, "
+                                                     "train_lytrinhview = '%9', "
+                                                     "train_lytrinh = %10, "
+                                                     "train_lastupdate = '%11'")
+                    .arg(trainId)
+                    .arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel])
+                    .arg(TraiRevRec.TrainName) //group
+                    .arg(TraiRevRec.Long1s)
+                    .arg(TraiRevRec.Lat1s)
+                    .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(name_way_flash[TraiRevRec.TrainName])
+                    .arg(TraiRevRec.KmM)
+                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+
+            if(connectionDatabase && connectionDatabase->startTransaction()){
+                qDebug() << "start transaction";
+                if(connectionDatabase->execQuery(sqlInsertTrainLog)
+                        && connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
+                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]);
+                    connectionDatabase->doCommit();
+                }
+                else{
+                    connectionDatabase->doRollback();
+                    qDebug() << "can't not update or insert to database";
+                }
+            }
             break;
         }
         break;
@@ -187,6 +299,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
+
+        //check infor
+
         break;
     default:
         qDebug() <<"UnKnowCmd";
@@ -241,7 +356,8 @@ void VehicleConnection::slot_readyRead(){
     for(int i=0; i < input.length(); i++) {
         Sys7bInput((unsigned char)input.at(i));
     }
-    qDebug() << "RecvData" << input.size() << input.toHex();
+    rawData = input.toHex();
+    qDebug() << "RecvData" << input.size() << rawData;
 }
 
 void VehicleConnection::slot_socketDisconnected(){
