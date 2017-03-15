@@ -19,10 +19,13 @@ static void messageHandler(QtMsgType type, const char *msg)
 int main(int argc, char *argv[])
 {    
     QCoreApplication a(argc, argv);
+    qDebug() << "sizeof(TrainAbsRec)" <<sizeof(TrainAbsRec);
     //-/ cai dat logger
     QDir logDir(qApp->applicationDirPath()+"/log");
     logDir.mkpath("./");
-    qInstallMsgHandler(messageHandler);
+    QSettings iniFileSetings(qApp->applicationDirPath() + "/VehicleTracking.ini", QSettings::IniFormat);
+    if(iniFileSetings.value("VehicleTrackingServer/LogFile", 0).toInt()>0)
+        qInstallMsgHandler(messageHandler);
 
     //VehicleTrackingServer vehicleTrackingServer(QDateTime::fromString(QDateTime::currentDateTime().toString("yyyy-MM-dd"), "yyyy-MM-dd").addDays(-60), 0, 1235);
     VehicleTrackingServer vehicleTrackingServer;
