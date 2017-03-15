@@ -18,6 +18,9 @@
 #define CMD_BIRDIR_ACK 2
 #define CMD_SYS_GET 3
 
+#define max_name_way        7
+#define max_name_mac        28 // tuyến thống nhất
+
 struct SDateTime{
     unsigned char Hour;
     unsigned char Min;
@@ -55,7 +58,7 @@ struct Event{// su kien ve van toc
     unsigned char SpeedNlm;
 };
 //------------------------------------------------------------------------------
-typedef struct TrainAbsRec{
+struct TrainAbsRec{
     unsigned int KmM;
     unsigned char TrainName;// id tuyen tau
     unsigned char TrainLabel;// id mac tau
@@ -98,6 +101,7 @@ private:
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
     QString plateNumber;
+    QString rawData;
     unsigned short Sys7bREvIdx;
     unsigned int TotalRevPCk;
     int state;
@@ -119,7 +123,7 @@ private slots:
     void slot_socketDisconnected();
     void slot_socketError(QAbstractSocket::SocketError socketError);
     void slot_socketDestroyed();
-//    void slot_requestInfoTimer();
+    void slot_requestInfoTimer();
 protected:
     void run();
 };

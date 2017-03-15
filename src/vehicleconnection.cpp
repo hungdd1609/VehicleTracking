@@ -11,7 +11,7 @@ railway const name_way_flash[max_name_way] =
     " HA NOI-HAI PHONG ",
     " HA NOI-DONG DANG ",
     " LAM THAO-YEN BAI ",
-    " YEN VIEN-HA LONG " ,
+    " YEN VIEN-HA LONG ",
     " YEN BAI-XUAN GIAO"
 };
 railway const name_way[max_name_way] = {"TH-NH","HN-LC","HN-HP", "HN-DD", "LT-YB", "YV-HL", "YB-XG"};
@@ -20,7 +20,7 @@ railway const name_way_mac[max_name_way][max_name_mac] = { // tên mac tàu
                                                            {" SP1 " , " SP3 " , " SP5 " , " LC1 " , " LC3 " , " LC5 " , " LC7 " , " YB1 " , " SP2 " , " SP4 " , " SP6 " , " LC2 " , " LC4 "  , " LC6 "  , " LC8 " , " LC10" , " LC9 "  , " YB2 "  , " SP7 "  , " SP8 "   , " TH1 " , " TH2 ",  " THb1"  , " THb2", "     ", "     ", "     ", "     "},
                                                            {" HP1 " , " LP3 " , " LP5 " , " LP7 " , " HP2 " , " LP2 " , " LP6 " , " LP8 " , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1"  , " THd2"  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" M1  " , " M3  " , " DD3 " , " M2  " , " M4  " , " DD4 " , " TH1 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
-                                                           {" TH1" , " TH2" ,   "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" TH1 " , " TH2 " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" R157" , " HLr1" , " R158" , " HLr2" , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" TH1 " , " TH2 " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " , "    "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                          };
@@ -295,13 +295,20 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     case CMD_BIRDIR_ACK:
         break;
     case CMD_SYS_GET:
+    {
         qDebug() <<"CMD_SYS_GET";
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
 
-        //check infor
-
+        QString sqlScanDevice = QString("SELECT * FROM tbl_device WHERE device_name = '%1'").arg(HardDev.NameDevice);
+        qDebug() << sqlScanDevice;
+        QSqlQuery query = connectionDatabase->getQuery(sqlScanDevice);
+        if (!query.next()) {
+            tcpSocket ->disconnectFromHost();
+            qDebug() << "unknow device...disconected";
+        }
+    }
         break;
     default:
         qDebug() <<"UnKnowCmd";
@@ -375,12 +382,12 @@ void VehicleConnection::slot_socketDestroyed(){
     qDebug()<< "VehicleConnection::slot_socketDestroyed()";
 }
 
-//void VehicleConnection::slot_requestInfoTimer(){
-//    unsigned char PSBuff[10]={0x80};
-//    qDebug() << "i'm serverrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr";
-//    SendPck(PSBuff,1,CMD_SYS_GET,0);
-//    qDebug() << "what 's your name ?";
-//}
+void VehicleConnection::slot_requestInfoTimer(){
+    unsigned char PSBuff[10]={0x80};
+    qDebug() << "hoi ten sau 15p";
+    SendPck(PSBuff,1,CMD_SYS_GET,0);
+    qDebug() << "what 's your name ?";
+}
 
 void VehicleConnection::run()
 {
@@ -399,9 +406,9 @@ void VehicleConnection::run()
     connectionTimer->start(1000);
 
     //hoi ten sau 15p
-//    requestInfoTimer = new QTimer(this);
-//    connect(requestInfoTimer, SIGNAL(timeout()), this, SLOT(slot_requestInfoTimer()));
-//    requestInfoTimer->start(10000);
+    requestInfoTimer = new QTimer(this);
+    connect(requestInfoTimer, SIGNAL(timeout()), this, SLOT(slot_requestInfoTimer()));
+    requestInfoTimer->start(120000);
 
     connectionDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","VehicleConnection");
     exec()  ;
