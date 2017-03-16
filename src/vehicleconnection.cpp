@@ -3,7 +3,7 @@
 #include <string.h>
 static const unsigned char bitmap[]={1,2,4,8,16,32,64,128};
 
-typedef char* railway;// ten tuyen
+typedef const char* railway;// ten tuyen
 railway const name_way_flash[max_name_way] =
 {
     " THONG NHAT       ",
