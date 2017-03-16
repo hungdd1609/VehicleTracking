@@ -83,6 +83,21 @@ enum LogRecType{
     REC_TRAIN_OVER_SPEED,
     REC_TRAIN_CHANGE_SPEED_LIMIT,
 };
+//------------------------------------------------------------------------------
+enum EventType{
+    EVENT_GPS_ABS=0,//Ban ghi Gps tuyet doi
+    EVENT_GPS_DIF,//Ban ghi GPS tuong doi
+    EVENT_USER_SIGNIN,//Ban ghi su kien nguoi dang nhap
+    EVENT_USER_SIGNOUT,//Ban ghi su kien nguoi dang xuat
+    EVENT_USER_OVERTIME,//Qua thoi gian
+    EVENT_VEHICLE_STOP,// dung
+    EVENT_VEHICLE_RUN,
+    EVENT_DIRVER_OVER_DAY,
+    EVENT_DIRVER_OVER_SPEED,
+    EVENT_TRAIN,
+    EVENT_TRAIN_OVER_SPEED,
+    EVENT_TRAIN_CHANGE_SPEED_LIMIT,
+};
 #pragma pack(pop)   /* restore original alignment from stack */
 
 
