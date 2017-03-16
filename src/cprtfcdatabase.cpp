@@ -422,7 +422,7 @@ QSqlQuery CprTfcDatabase::getQuery(const QString& str)
     localQuery.clear();
     sqlState=0;
     if (!localDatabase.isOpen() && openDatabase(true)!=1)
-        return false;
+        return localQuery;
     localQuery = QSqlQuery(localDatabase);
     QDateTime startQuery = QDateTime::currentDateTime();
     if (localQuery.exec(str)){
@@ -458,7 +458,7 @@ QSqlQuery CprTfcDatabase::getQuery(const QString& str)
             writeDebug(QString("Exec Query[%1], error[%2], host[%3], database[%4], alias[%5]").arg(str).arg(localQuery.lastError().text()).arg(localDatabase.hostName()).arg(localDatabase.databaseName()).arg(AliasName));
         sqlErrorString = localQuery.lastError().text();
         emit sqlError(EXEC_SQL_ERROR, sqlErrorString);
-        return false;
+        return localQuery;
     }
 }
 
