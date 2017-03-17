@@ -164,6 +164,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         SendPck(PBuff,1,CMD_BIRDIR_ACK,Pck[len-3]);
         //eventpck++;
         l=DecodeDataPack(Pck,len-3);
+
+        //get train's data
+        memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
+        trainId = TraiRevRec.TrainName + 1;
+
         switch(Pck[0]&0x3F){
         case REC_GPS_ABS://Ban ghi Gps tuyet doi
             qDebug() <<"Ban ghi tuyet doi";
@@ -198,10 +203,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN:
         {
-            //get train's data
-            memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
-            trainId = TraiRevRec.TrainName + 1;
-
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
             qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss") << "KmM" << TraiRevRec.KmM << "Latitude" << TraiRevRec.Lat1s << "Longitude" <<TraiRevRec.Long1s << "train label" <<TraiRevRec.TrainLabel << "train name" << TraiRevRec.TrainName;
@@ -283,8 +284,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             if(connectionDatabase && connectionDatabase->startTransaction()){
                 if(connectionDatabase->execQuery(sqlInsertTrainLog)
                         && connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
-                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]);
                     connectionDatabase->doCommit();
+                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]);
                 }
                 else{
                     connectionDatabase->doRollback();
@@ -302,10 +303,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             qDebug() << "---over speed---";
             qDebug() << "lat:" << EventSpeed.GpsN.Lat << "long:" << EventSpeed.GpsN.Long << "speed:" << EventSpeed.GpsN.Speed << "time:" << gpsTime;
             qDebug() << "speed N limit:" << EventSpeed.SpeedNlm << "speed limit:" << EventSpeed.Speedlm;
-
-            //get train's data
-            memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
-            trainId = TraiRevRec.TrainName + 1;
 
             QString description = QString("Over speed \n lat:%1; long: %2; speed: %3; speed limit: %4")
                     .arg(EventSpeed.GpsN.Lat)
@@ -339,10 +336,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             qDebug() << "---change speed limit---";
             qDebug() << "lat:" << EventSpeed.GpsN.Lat << "long:" << EventSpeed.GpsN.Long << "speed:" << EventSpeed.GpsN.Speed << "time:" << gpsTime;
             qDebug() << "speed N limit:" << EventSpeed.SpeedNlm << "speed limit:" << EventSpeed.Speedlm;
-
-            //get train's data
-            memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
-            trainId = TraiRevRec.TrainName + 1;
 
             QString description = QString("Change speed limit \n lat:%1; long: %2; current speed limit: %3; next speed limit: %4")
                     .arg(EventSpeed.GpsN.Lat)
@@ -461,7 +454,7 @@ void VehicleConnection::slot_socketDestroyed(){
 
 void VehicleConnection::slot_requestInfoTimer(){
     unsigned char PSBuff[10]={0x80};
-    qDebug() << "hoi ten sau 15p";
+    qDebug() << "15P <<<<------------------";
     SendPck(PSBuff,1,CMD_SYS_GET,0);
     qDebug() << "what 's your name ?";
 }
