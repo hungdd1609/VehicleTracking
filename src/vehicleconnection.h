@@ -76,7 +76,7 @@ struct TrainAbsRec{
     unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
     unsigned char GpsStatesNumOfSat;// trang thai gps bit 8, so ve tinh bit tu 7-1
-    unsigned short Height;           // do cao
+    short Height;           // do cao
 };
 //------------------------------------------------------------------------------
 enum LogRecType{

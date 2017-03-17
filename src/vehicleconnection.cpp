@@ -153,7 +153,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     unsigned char GpsStates,NumOfSat;
     int eventpck=0;
     unsigned char l;
-    QString eTime;
+    QString eTime, trainLabel, lytrinhView;
     QDateTime gpsTime;
     PBuff[0]=128;
     TotalRevPCk++;
@@ -263,8 +263,17 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(rawData);
 
 
+            // truong hop chua bat may se gui ve 255
+            if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
+                trainLabel = "NULL";
+                lytrinhView = "NULL";
+                qDebug() << ">>>>>>> chua bat may";
+            }
+            else{
+                trainLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
+                lytrinhView = QString(name_way_flash[TraiRevRec.TrainName]).trimmed();
+            }
             //insert or update into tbl_train
-            QString trainLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
             QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ("
                                                      "train_id, "
                                                      "train_label, "
@@ -300,7 +309,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
-                    .arg(name_way_flash[TraiRevRec.TrainName])
+                    .arg(lytrinhView)
                     .arg(TraiRevRec.KmM)
                     .arg(GpsStates)
                     .arg(NumOfSat)
