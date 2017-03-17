@@ -29,14 +29,21 @@ struct SDateTime{
     unsigned char Month;
     unsigned char Year;
 };
-
+//------------------------------------------------------------------------------
 struct GpsInt{
     unsigned int Lat;
     unsigned int Long;
     unsigned char Speed;
     SDateTime DateTime;
 };
-
+//------------------------------------------------------------------------------
+struct GpsMng{
+    GpsInt Gps;
+    unsigned char GpsStates;// trang thai gps
+    unsigned char NumOfSat;//so ve tinh
+    short Height; //cao do
+};
+//------------------------------------------------------------------------------
 struct UserInfor{
     char uid[24];
     char Giaypheplaixe[16];
@@ -47,13 +54,14 @@ struct UserInfor{
     int TimerDriver; // thoi gian lai xe lien tuc
     GpsInt GPS;
 };
+//------------------------------------------------------------------------------
 struct DevInfor{
     char NameDevice[20]; // tên thiet bi
     char Type[20];// seri
 };
-//---------------------------------------------------------------
+//------------------------------------------------------------------------------
 struct Event{// su kien ve van toc
-    GpsInt GpsN;
+    GpsMng GpsN;
     unsigned char Speedlm;
     unsigned char SpeedNlm;
 };
@@ -67,6 +75,8 @@ struct TrainAbsRec{
     SDateTime TimeNow1s;
     unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
+    unsigned char GpsStatesNumOfSat;// trang thai gps bit 8, so ve tinh bit tu 7-1
+    unsigned short Height;           // do cao
 };
 //------------------------------------------------------------------------------
 enum LogRecType{
@@ -116,6 +126,7 @@ private:
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
     QString plateNumber;
+    QString trainId;
     QString rawData;
     unsigned short Sys7bREvIdx;
     unsigned int TotalRevPCk;

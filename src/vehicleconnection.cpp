@@ -31,10 +31,12 @@ VehicleConnection::VehicleConnection()
     state=0;
     plateNumber.clear();
     rawData.clear();
+    trainId.clear();
 }
 VehicleConnection::VehicleConnection(QTcpSocket *socket){
     plateNumber.clear();
     rawData.clear();
+    trainId.clear();
     connectionDatabase = NULL;
     moveToThread(this);
     tcpSocket = socket;
@@ -148,11 +150,11 @@ unsigned char VehicleConnection::SendPck(unsigned char* PayLoad,unsigned short P
 void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len)
 {
     unsigned char PBuff[256];
+    unsigned char GpsStates,NumOfSat;
     int eventpck=0;
     unsigned char l;
     QString eTime;
     QDateTime gpsTime;
-    int trainId = 0;
     PBuff[0]=128;
     TotalRevPCk++;
 
@@ -167,7 +169,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
         //get train's data
         memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
-        trainId = TraiRevRec.TrainName + 1;
 
         switch(Pck[0]&0x3F){
         case REC_GPS_ABS://Ban ghi Gps tuyet doi
@@ -205,7 +206,19 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         {
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
-            qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss") << "KmM" << TraiRevRec.KmM << "Latitude" << TraiRevRec.Lat1s << "Longitude" <<TraiRevRec.Long1s << "train label" <<TraiRevRec.TrainLabel << "train name" << TraiRevRec.TrainName;
+
+            GpsStates = TraiRevRec.GpsStatesNumOfSat>>7;
+            NumOfSat = TraiRevRec.GpsStatesNumOfSat&0x7F;
+
+            qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
+                     << "KmM" << TraiRevRec.KmM
+                     << "Latitude" << TraiRevRec.Lat1s
+                     << "Longitude" <<TraiRevRec.Long1s
+                     << "train label" <<TraiRevRec.TrainLabel
+                     << "train name" << TraiRevRec.TrainName
+                     << "train height" << TraiRevRec.Height
+                     << "gps State" << GpsStates
+                     << "num of sat" << NumOfSat;
 
             //            QString TrainRecStr;
             //            unsigned char i;
@@ -231,8 +244,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                                 "trainlog_speed, "
                                                 "trainlog_pressure, "
                                                 "trainlog_lastupdate, "
+                                                "trainlog_gpsstate, "
+                                                "trainlog_numofsat, "
+                                                "trainlog_height, "
                                                 "trainlog_rawdata) "
-                                                "VALUES (%1, %2, %3, '%4', %5, %6, %7, '%8', '%9') ")
+                                                "VALUES ('%1', %2, %3, '%4', %5, %6, %7, '%8', %9, %10, '%11', '%12') ")
                     .arg(trainId)
                     .arg(TraiRevRec.Lat1s)
                     .arg(TraiRevRec.Long1s)
@@ -241,14 +257,17 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
                     .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(GpsStates)
+                    .arg(NumOfSat)
+                    .arg(TraiRevRec.Height)
                     .arg(rawData);
 
 
             //insert or update into tbl_train
+            QString trainLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
             QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ("
                                                      "train_id, "
                                                      "train_label, "
-                                                     "train_group, "
                                                      "train_longitude, "
                                                      "train_latitude, "
                                                      "train_time, "
@@ -256,22 +275,26 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                                      "train_pressure, "
                                                      "train_lytrinhview, "
                                                      "train_lytrinh, "
+                                                     "train_gpsstate, "
+                                                     "train_numofsat, "
+                                                     "train_height, "
                                                      "train_lastupdate) "
-                                                     "VALUES (%1, '%2', %3, %4, %5, '%6', %7, %8, '%9', %10, '%11') "
+                                                     "VALUES ('%1', '%2', %3, %4, '%5', %6, %7, '%8', %9, %10, %11, '%12', '%13') "
                                                      "ON DUPLICATE KEY UPDATE "
                                                      "train_label = '%2', "
-                                                     "train_group = %3, "
-                                                     "train_longitude = %4, "
-                                                     "train_latitude = %5, "
-                                                     "train_time = '%6', "
-                                                     "train_speed = %7, "
-                                                     "train_pressure = %8, "
-                                                     "train_lytrinhview = '%9', "
-                                                     "train_lytrinh = %10, "
-                                                     "train_lastupdate = '%11'")
+                                                     "train_longitude = %3, "
+                                                     "train_latitude = %4, "
+                                                     "train_time = '%5', "
+                                                     "train_speed = %6, "
+                                                     "train_pressure = %7, "
+                                                     "train_lytrinhview = '%8', "
+                                                     "train_lytrinh = %9, "
+                                                     "train_gpsstate = %10, "
+                                                     "train_numofsat = %11, "
+                                                     "train_height = '%12', "
+                                                     "train_lastupdate = '%13'")
                     .arg(trainId)
-                    .arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel])
-                    .arg(TraiRevRec.TrainName) //group
+                    .arg(trainLabel)
                     .arg(TraiRevRec.Long1s)
                     .arg(TraiRevRec.Lat1s)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
@@ -279,13 +302,16 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
                     .arg(name_way_flash[TraiRevRec.TrainName])
                     .arg(TraiRevRec.KmM)
+                    .arg(GpsStates)
+                    .arg(NumOfSat)
+                    .arg(TraiRevRec.Height)
                     .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 
             if(connectionDatabase && connectionDatabase->startTransaction()){
                 if(connectionDatabase->execQuery(sqlInsertTrainLog)
                         && connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
                     connectionDatabase->doCommit();
-                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]);
+                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(trainLabel);
                 }
                 else{
                     connectionDatabase->doRollback();
@@ -297,17 +323,17 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         case REC_TRAIN_OVER_SPEED:
         {
             memcpy(&EventSpeed,Pck+1,sizeof(Event));
-            gpsTime.setDate(QDate(EventSpeed.GpsN.DateTime.Year + 2000, EventSpeed.GpsN.DateTime.Month, EventSpeed.GpsN.DateTime.Day));
-            gpsTime.setTime(QTime(EventSpeed.GpsN.DateTime.Hour, EventSpeed.GpsN.DateTime.Min, EventSpeed.GpsN.DateTime.Sec, 0));
+            gpsTime.setDate(QDate(EventSpeed.GpsN.Gps.DateTime.Year + 2000, EventSpeed.GpsN.Gps.DateTime.Month, EventSpeed.GpsN.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(EventSpeed.GpsN.Gps.DateTime.Hour, EventSpeed.GpsN.Gps.DateTime.Min, EventSpeed.GpsN.Gps.DateTime.Sec, 0));
 
             qDebug() << "---over speed---";
-            qDebug() << "lat:" << EventSpeed.GpsN.Lat << "long:" << EventSpeed.GpsN.Long << "speed:" << EventSpeed.GpsN.Speed << "time:" << gpsTime;
+            qDebug() << "lat:" << EventSpeed.GpsN.Gps.Lat << "long:" << EventSpeed.GpsN.Gps.Long << "speed:" << EventSpeed.GpsN.Gps.Speed << "time:" << gpsTime.toString("yyyy-MM-dd hh:mm:ss");
             qDebug() << "speed N limit:" << EventSpeed.SpeedNlm << "speed limit:" << EventSpeed.Speedlm;
 
             QString description = QString("Over speed \n lat:%1; long: %2; speed: %3; speed limit: %4")
-                    .arg(EventSpeed.GpsN.Lat)
-                    .arg(EventSpeed.GpsN.Long)
-                    .arg(EventSpeed.GpsN.Speed)
+                    .arg(EventSpeed.GpsN.Gps.Lat)
+                    .arg(EventSpeed.GpsN.Gps.Long)
+                    .arg(EventSpeed.GpsN.Gps.Speed)
                     .arg(EventSpeed.Speedlm);
             QString sqlInsertEvent = QString("INSERT INTO tbl_event ("
                                              "event_trainid, "
@@ -315,7 +341,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                              "event_type, "
                                              "event_description, "
                                              "event_lastupdate) "
-                                             "VALUES (%1, '%2', %3, '%4', '%5')")
+                                             "VALUES ('%1', '%2', %3, '%4', '%5')")
                     .arg(trainId)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(EVENT_TRAIN_OVER_SPEED)
@@ -330,16 +356,16 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         case REC_TRAIN_CHANGE_SPEED_LIMIT:
         {
             memcpy(&EventSpeed,Pck+1,sizeof(Event));
-            gpsTime.setDate(QDate(EventSpeed.GpsN.DateTime.Year + 2000, EventSpeed.GpsN.DateTime.Month, EventSpeed.GpsN.DateTime.Day));
-            gpsTime.setTime(QTime(EventSpeed.GpsN.DateTime.Hour, EventSpeed.GpsN.DateTime.Min, EventSpeed.GpsN.DateTime.Sec, 0));
+            gpsTime.setDate(QDate(EventSpeed.GpsN.Gps.DateTime.Year + 2000, EventSpeed.GpsN.Gps.DateTime.Month, EventSpeed.GpsN.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(EventSpeed.GpsN.Gps.DateTime.Hour, EventSpeed.GpsN.Gps.DateTime.Min, EventSpeed.GpsN.Gps.DateTime.Sec, 0));
 
             qDebug() << "---change speed limit---";
-            qDebug() << "lat:" << EventSpeed.GpsN.Lat << "long:" << EventSpeed.GpsN.Long << "speed:" << EventSpeed.GpsN.Speed << "time:" << gpsTime;
+            qDebug() << "lat:" << EventSpeed.GpsN.Gps.Lat << "long:" << EventSpeed.GpsN.Gps.Long << "speed:" << EventSpeed.GpsN.Gps.Speed << "time:" << gpsTime.toString("yyyy-MM-dd hh:mm:ss");
             qDebug() << "speed N limit:" << EventSpeed.SpeedNlm << "speed limit:" << EventSpeed.Speedlm;
 
             QString description = QString("Change speed limit \n lat:%1; long: %2; current speed limit: %3; next speed limit: %4")
-                    .arg(EventSpeed.GpsN.Lat)
-                    .arg(EventSpeed.GpsN.Long)
+                    .arg(EventSpeed.GpsN.Gps.Lat)
+                    .arg(EventSpeed.GpsN.Gps.Long)
                     .arg(EventSpeed.Speedlm)
                     .arg(EventSpeed.SpeedNlm);
             QString sqlInsertEvent = QString("INSERT INTO tbl_event ("
@@ -348,7 +374,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                              "event_type, "
                                              "event_description, "
                                              "event_lastupdate) "
-                                             "VALUES (%1, '%2', %3, '%4', '%5')")
+                                             "VALUES ('%1', '%2', %3, '%4', '%5')")
                     .arg(trainId)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(EVENT_TRAIN_CHANGE_SPEED_LIMIT)
@@ -370,9 +396,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
+        trainId = QString(HardDev.NameDevice);
 
-        QString sqlScanDevice = QString("SELECT * FROM tbl_device WHERE device_name = '%1'").arg(HardDev.NameDevice);
-        qDebug() << sqlScanDevice;
+        QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
         QSqlQuery query = connectionDatabase->getQuery(sqlScanDevice);
         if (!query.next()) {
             tcpSocket ->disconnectFromHost();
