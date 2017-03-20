@@ -123,7 +123,6 @@ public:
     bool execQuery(const QString &str, QSqlQuery &query){
         return execQuery(query, str);
     }
-    QSqlQuery getQuery(const QString &str);
     bool startTransaction();
     bool doCommit();
     bool doRollback();

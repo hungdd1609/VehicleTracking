@@ -408,7 +408,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         trainId = QString(HardDev.NameDevice);
 
         QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
-        QSqlQuery query = connectionDatabase->getQuery(sqlScanDevice);
+        QSqlQuery query;
+        connectionDatabase->execQuery(query, sqlScanDevice);
         if (!query.next()) {
             tcpSocket ->disconnectFromHost();
             qDebug() << "unknow device...disconected";
