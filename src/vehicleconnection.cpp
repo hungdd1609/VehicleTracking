@@ -153,7 +153,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     unsigned char GpsStates,NumOfSat;
     int eventpck=0;
     unsigned char l;
-    QString eTime, trainLabel, lytrinhView;
+    QString eTime, trainLabel;
     QDateTime gpsTime;
     PBuff[0]=128;
     TotalRevPCk++;
@@ -204,6 +204,14 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN:
         {
+            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QSqlQuery query;
+            connectionDatabase->execQuery(query, sqlScanDevice);
+            if (!query.next()) {
+                qDebug() << "unknow device........";
+                break;
+            }
+
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
 
@@ -266,13 +274,13 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             // truong hop chua bat may se gui ve 255
             if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
                 trainLabel = "NULL";
-                lytrinhView = "NULL";
                 qDebug() << ">>>>>>> chua bat may";
             }
             else{
                 trainLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
-                lytrinhView = QString(name_way_flash[TraiRevRec.TrainName]).trimmed();
             }
+            QString lytrinhView = QString("Km %1 + %2").arg(TraiRevRec.KmM/1000).arg(TraiRevRec.KmM%1000);
+
             //insert or update into tbl_train
             QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ("
                                                      "train_id, "
@@ -331,6 +339,14 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN_OVER_SPEED:
         {
+            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QSqlQuery query;
+            connectionDatabase->execQuery(query, sqlScanDevice);
+            if (!query.next()) {
+                qDebug() << "unknow device........";
+                break;
+            }
+
             memcpy(&EventSpeed,Pck+1,sizeof(Event));
             gpsTime.setDate(QDate(EventSpeed.GpsN.Gps.DateTime.Year + 2000, EventSpeed.GpsN.Gps.DateTime.Month, EventSpeed.GpsN.Gps.DateTime.Day));
             gpsTime.setTime(QTime(EventSpeed.GpsN.Gps.DateTime.Hour, EventSpeed.GpsN.Gps.DateTime.Min, EventSpeed.GpsN.Gps.DateTime.Sec, 0));
@@ -364,6 +380,14 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN_CHANGE_SPEED_LIMIT:
         {
+            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QSqlQuery query;
+            connectionDatabase->execQuery(query, sqlScanDevice);
+            if (!query.next()) {
+                qDebug() << "unknow device........";
+                break;
+            }
+
             memcpy(&EventSpeed,Pck+1,sizeof(Event));
             gpsTime.setDate(QDate(EventSpeed.GpsN.Gps.DateTime.Year + 2000, EventSpeed.GpsN.Gps.DateTime.Month, EventSpeed.GpsN.Gps.DateTime.Day));
             gpsTime.setTime(QTime(EventSpeed.GpsN.Gps.DateTime.Hour, EventSpeed.GpsN.Gps.DateTime.Min, EventSpeed.GpsN.Gps.DateTime.Sec, 0));
