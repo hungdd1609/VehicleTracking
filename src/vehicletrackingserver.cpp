@@ -65,7 +65,7 @@ VehicleTrackingServer::VehicleTrackingServer()
 void VehicleTrackingServer::slot_mainTimer_timeout(){    
     //-/manage backup
     //-/-/check and create partition
-    QString getLstPartition = "SELECT partition_name FROM information_schema.partitions WHERE table_name ='tbl_trainlog' ORDER BY partition_name DESC Limit 1";
+    QString getLstPartition = "SELECT partition_name FROM information_schema.partitions WHERE table_name ='tbl_phuongtienlog' ORDER BY partition_name DESC Limit 1";
     QSqlQuery qLstPartition;
 
     if(serverDatabase && serverDatabase->execQuery(qLstPartition,getLstPartition)) {
@@ -84,7 +84,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                 }
 
                 while (lstPartitionDate.daysTo(QDateTime::currentDateTime()) >= -1 ) {
-                    QString addPartition = QString("ALTER TABLE tbl_trainlog "
+                    QString addPartition = QString("ALTER TABLE tbl_phuongtienlog "
                                                    "ADD PARTITION (PARTITION p%1 VALUES LESS THAN ( TO_DAYS('%2')))")
                             .arg(lstPartitionDate.toString("yyyyMMdd"))
                             .arg(lstPartitionDate.addDays(1).toString("yyyy-MM-dd hh:mm:ss"));

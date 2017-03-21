@@ -21,6 +21,9 @@
 #define max_name_way        7
 #define max_name_mac        28 // tuyến thống nhất
 
+#define TYPE_CAR 1
+#define TYPE_TRAIN 2
+
 struct SDateTime{
     unsigned char Hour;
     unsigned char Min;
@@ -62,6 +65,7 @@ struct DevInfor{
 //------------------------------------------------------------------------------
 struct Event{// su kien ve van toc
     GpsMng GpsN;
+    unsigned long Kmm;
     unsigned char Speedlm;
     unsigned char SpeedNlm;
 };
@@ -70,13 +74,15 @@ struct TrainAbsRec{
     unsigned int KmM;
     unsigned char TrainName;// id tuyen tau
     unsigned char TrainLabel;// id mac tau
+    unsigned char GpsStatesNumOfSat;// trang thai gps bit 8, so ve tinh bit tu 7-1
+    unsigned char LimitSpeed;// toc do cong lenh
     unsigned int Long1s;
     unsigned int Lat1s;
     SDateTime TimeNow1s;
+    short Height;           // do cao
     unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
-    unsigned char GpsStatesNumOfSat;// trang thai gps bit 8, so ve tinh bit tu 7-1
-    short Height;           // do cao
+    unsigned char WheelSpeed[TIME_SEND_DATA_SERVER];
 };
 //------------------------------------------------------------------------------
 enum LogRecType{
@@ -126,7 +132,6 @@ private:
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
     QString plateNumber;
-    QString trainId;
     QString rawData;
     unsigned short Sys7bREvIdx;
     unsigned int TotalRevPCk;

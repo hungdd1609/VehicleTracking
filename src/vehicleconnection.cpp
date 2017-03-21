@@ -31,12 +31,10 @@ VehicleConnection::VehicleConnection()
     state=0;
     plateNumber.clear();
     rawData.clear();
-    trainId.clear();
 }
 VehicleConnection::VehicleConnection(QTcpSocket *socket){
     plateNumber.clear();
     rawData.clear();
-    trainId.clear();
     connectionDatabase = NULL;
     moveToThread(this);
     tcpSocket = socket;
@@ -120,7 +118,7 @@ unsigned short VehicleConnection::DecodeDataPack(unsigned char *in2outbuff,unsig
         }
         p_out_mp++;
     }
-    //    qDebug() << "DecodeDataPack" << count << p_out_mp;
+    //        qDebug() << "DecodeDataPack" << count << p_out_mp;
     return p_out_mp;
 };
 //-------------------------------------------------------------------------
@@ -153,7 +151,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     unsigned char GpsStates,NumOfSat;
     int eventpck=0;
     unsigned char l;
-    QString eTime, trainLabel;
+    QString eTime, vehicleLabel;
     QDateTime gpsTime;
     PBuff[0]=128;
     TotalRevPCk++;
@@ -204,11 +202,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN:
         {
-            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QString sqlScanDevice = QString("SELECT * FROM tbl_phuongtien WHERE phuongtien_bienso = '%1'").arg(plateNumber);
             QSqlQuery query;
             connectionDatabase->execQuery(query, sqlScanDevice);
             if (!query.next()) {
-                qDebug() << "unknow device........";
+                qDebug() << "unknow vehicle........";
                 break;
             }
 
@@ -228,107 +226,139 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                      << "gps State" << GpsStates
                      << "num of sat" << NumOfSat;
 
-            //            QString TrainRecStr;
-            //            unsigned char i;
-            //            TrainRecStr="Speed:";
-            //            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
-            //                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.SpeedBuff[i])+" ";
-            //            }
-            //            qDebug() <<TrainRecStr;
+            QString TrainRecStr;
+            unsigned char i;
+            TrainRecStr="Speed:";
+            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
+                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.SpeedBuff[i])+" ";
+            }
+            qDebug() <<TrainRecStr;
 
-            //            TrainRecStr="Presure:";
-            //            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
-            //                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.PresBuff[i])+" ";
-            //            }
-            //            qDebug() <<TrainRecStr;
+            TrainRecStr="Presure:";
+            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
+                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.PresBuff[i])+" ";
+            }
+            qDebug() <<TrainRecStr;
 
-            //insert train's data to tbl_trainlog
-            QString sqlInsertTrainLog = QString("INSERT INTO tbl_trainlog ("
-                                                "trainlog_trainid, "
-                                                "trainlog_latitude, "
-                                                "trainlog_longitude, "
-                                                "trainlog_time, "
-                                                "trainlog_lytrinh, "
-                                                "trainlog_speed, "
-                                                "trainlog_pressure, "
-                                                "trainlog_lastupdate, "
-                                                "trainlog_gpsstate, "
-                                                "trainlog_numofsat, "
-                                                "trainlog_height, "
-                                                "trainlog_rawdata) "
-                                                "VALUES ('%1', %2, %3, '%4', %5, %6, %7, '%8', %9, %10, '%11', '%12') ")
-                    .arg(trainId)
-                    .arg(TraiRevRec.Lat1s)
-                    .arg(TraiRevRec.Long1s)
+            TrainRecStr="WheelSpeed:";
+            for(i=0;i<TIME_SEND_DATA_SERVER;i++){
+                TrainRecStr=TrainRecStr+QString::number(TraiRevRec.WheelSpeed[i])+" ";
+            }
+            qDebug() <<TrainRecStr;
+
+            //insert train's data to tbl_phuongtienlog
+            QString sqlInsertTrainLog = QString("INSERT INTO tbl_phuongtienlog ("
+                                                "phuongtienlog_bienso, "
+                                                "phuongtienlog_thoigian, "
+                                                "phuongtienlog_kinhdo, "
+                                                "phuongtienlog_vido, "
+                                                "phuongtienlog_vantoc_gps, "
+                                                "phuongtienlog_vantoc_banhxe, "
+                                                "phuongtienlog_vantoc_dongho, "
+                                                "phuongtienlog_vantoc_dongco, "
+                                                "phuongtienlog_hanchetocdo, "
+                                                "phuongtienlog_apsuat, "
+                                                "phuongtienlog_lytrinh, "
+                                                "phuongtienlog_huong, "
+                                                "phuongtienlog_trangthaigps, "
+                                                "phuongtienlog_extdata) "
+                                                "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14') ")
+                    .arg(plateNumber)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
-                    .arg(TraiRevRec.KmM)
+                    .arg(TraiRevRec.Long1s)
+                    .arg(TraiRevRec.Lat1s)
+                    .arg(0) //van toc gps
+                    .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(0) //van toc dong ho
                     .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+                    .arg(TraiRevRec.LimitSpeed)
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(TraiRevRec.KmM)
+                    .arg(0) //huong
                     .arg(GpsStates)
-                    .arg(NumOfSat)
-                    .arg(TraiRevRec.Height)
                     .arg(rawData);
 
 
             // truong hop chua bat may se gui ve 255
             if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
-                trainLabel = "NULL";
-                qDebug() << ">>>>>>> chua bat may";
+                break;
             }
             else{
-                trainLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
+                vehicleLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
             }
-            QString lytrinhView = QString("Km %1 + %2").arg(TraiRevRec.KmM/1000).arg(TraiRevRec.KmM%1000);
 
             //insert or update into tbl_train
-            QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_train ("
-                                                     "train_id, "
-                                                     "train_label, "
-                                                     "train_longitude, "
-                                                     "train_latitude, "
-                                                     "train_time, "
-                                                     "train_speed, "
-                                                     "train_pressure, "
-                                                     "train_lytrinhview, "
-                                                     "train_lytrinh, "
-                                                     "train_gpsstate, "
-                                                     "train_numofsat, "
-                                                     "train_height, "
-                                                     "train_lastupdate) "
-                                                     "VALUES ('%1', '%2', %3, %4, '%5', %6, %7, '%8', %9, %10, %11, '%12', '%13') "
+            QString sqlInsertOrUpdateTrain = QString("INSERT INTO tbl_phuongtien ("
+                                                     "phuongtien_imei, "
+                                                     "phuongtien_loaiphuongtien, "
+                                                     "phuongtien_tochuc, "
+                                                     "phuongtien_bienso, "
+                                                     "phuongtien_laichinh, "
+                                                     "phuongtien_tuyenduong, "
+                                                     "phuongtien_machuyen, "
+                                                     "phuongtien_phulai, "
+                                                     "phuongtien_thoigian, "
+                                                     "phuongtien_kinhdo, "
+                                                     "phuongtien_vido, "
+                                                     "phuongtien_vantoc_gps, "
+                                                     "phuongtien_vantoc_banhxe, "
+                                                     "phuongtien_vantoc_dongho, "
+                                                     "phuongtien_vantoc_dongco, "
+                                                     "phuongtien_hanchetocdo, "
+                                                     "phuongtien_lytrinh, "
+                                                     "phuongtien_apsuat, "
+                                                     "phuongtien_huong, "
+                                                     "phuongtien_trangthaigps, "
+                                                     "phuongtien_extdata) "
+                                                     "VALUES (%1, %2, %3, '%4', %5, '%6', '%7', %8, '%9', %10, %11, %12, %13, %14, %15, %16, %17, %18, %19, %20, '%21') "
                                                      "ON DUPLICATE KEY UPDATE "
-                                                     "train_label = '%2', "
-                                                     "train_longitude = %3, "
-                                                     "train_latitude = %4, "
-                                                     "train_time = '%5', "
-                                                     "train_speed = %6, "
-                                                     "train_pressure = %7, "
-                                                     "train_lytrinhview = '%8', "
-                                                     "train_lytrinh = %9, "
-                                                     "train_gpsstate = %10, "
-                                                     "train_numofsat = %11, "
-                                                     "train_height = '%12', "
-                                                     "train_lastupdate = '%13'")
-                    .arg(trainId)
-                    .arg(trainLabel)
+                                                     "phuongtien_imei = %1, "
+                                                     "phuongtien_loaiphuongtien = %2, "
+                                                     "phuongtien_tochuc = %3, "
+                                                     "phuongtien_laichinh = %5, "
+                                                     "phuongtien_tuyenduong = '%6', "
+                                                     "phuongtien_machuyen = '%7', "
+                                                     "phuongtien_phulai = %8, "
+                                                     "phuongtien_thoigian = '%9', "
+                                                     "phuongtien_kinhdo = %10, "
+                                                     "phuongtien_vido = %11, "
+                                                     "phuongtien_vantoc_gps = %12, "
+                                                     "phuongtien_vantoc_banhxe = %13, "
+                                                     "phuongtien_vantoc_dongho = %14, "
+                                                     "phuongtien_vantoc_dongco = %15, "
+                                                     "phuongtien_hanchetocdo = %16, "
+                                                     "phuongtien_lytrinh = %17, "
+                                                     "phuongtien_apsuat = %18, "
+                                                     "phuongtien_huong = %19, "
+                                                     "phuongtien_trangthaigps = %20, "
+                                                     "phuongtien_extdata = '%21'")
+                    .arg("' '") //imei
+                    .arg(TYPE_TRAIN)
+                    .arg(1) //to chuc
+                    .arg(plateNumber) //bien so
+                    .arg(1) //lai chinh
+                    .arg(name_way_flash[TraiRevRec.TrainName]) //tuyen duong
+                    .arg(vehicleLabel) //ma chuyen
+                    .arg(1) //phu lai
+                    .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(TraiRevRec.Long1s)
                     .arg(TraiRevRec.Lat1s)
-                    .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
-                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
-                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
-                    .arg(lytrinhView)
-                    .arg(TraiRevRec.KmM)
+                    .arg(0) //van toc gps
+                    .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1])) //van toc banh xe
+                    .arg(0) //van toc dong ho
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong co
+                    .arg(TraiRevRec.LimitSpeed) //gioi han toc do
+                    .arg(TraiRevRec.KmM) //ly trinh
+                    .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1])) //ap suat
+                    .arg(0) //huong
                     .arg(GpsStates)
-                    .arg(NumOfSat)
-                    .arg(TraiRevRec.Height)
-                    .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+                    .arg(rawData);
 
             if(connectionDatabase && connectionDatabase->startTransaction()){
                 if(connectionDatabase->execQuery(sqlInsertTrainLog)
                         && connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
                     connectionDatabase->doCommit();
-                    qDebug() << QString("%1 is updated to tbl_trainlog and tbl_train").arg(trainLabel);
+                    qDebug() << QString("%1 is updated to tbl_phuongtien and tbl_phuongtien").arg(vehicleLabel);
                 }
                 else{
                     connectionDatabase->doRollback();
@@ -339,11 +369,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN_OVER_SPEED:
         {
-            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QString sqlScanDevice = QString("SELECT * FROM tbl_phuongtien WHERE phuongtien_bienso = '%1'").arg(plateNumber);
             QSqlQuery query;
             connectionDatabase->execQuery(query, sqlScanDevice);
             if (!query.next()) {
-                qDebug() << "unknow device........";
+                qDebug() << "unknow vehicle........";
                 break;
             }
 
@@ -361,30 +391,30 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(EventSpeed.GpsN.Gps.Speed)
                     .arg(EventSpeed.Speedlm);
             QString sqlInsertEvent = QString("INSERT INTO tbl_event ("
-                                             "event_trainid, "
+                                             "event_bienso, "
                                              "event_time, "
                                              "event_type, "
                                              "event_description, "
                                              "event_lastupdate) "
                                              "VALUES ('%1', '%2', %3, '%4', '%5')")
-                    .arg(trainId)
+                    .arg(plateNumber)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(EVENT_TRAIN_OVER_SPEED)
                     .arg(description)
                     .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 
             if(connectionDatabase && connectionDatabase->execQuery(sqlInsertEvent)){
-                qDebug() << QString("Train %1 event over speed is inserted").arg(trainId);
+                qDebug() << QString("vehicle %1 event over speed is inserted").arg(plateNumber);
             }
         }
             break;
         case REC_TRAIN_CHANGE_SPEED_LIMIT:
         {
-            QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
+            QString sqlScanDevice = QString("SELECT * FROM tbl_phuongtien WHERE phuongtien_bienso = '%1'").arg(plateNumber);
             QSqlQuery query;
             connectionDatabase->execQuery(query, sqlScanDevice);
             if (!query.next()) {
-                qDebug() << "unknow device........";
+                qDebug() << "unknow vehicle........";
                 break;
             }
 
@@ -402,20 +432,20 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(EventSpeed.Speedlm)
                     .arg(EventSpeed.SpeedNlm);
             QString sqlInsertEvent = QString("INSERT INTO tbl_event ("
-                                             "event_trainid, "
+                                             "event_bienso, "
                                              "event_time, "
                                              "event_type, "
                                              "event_description, "
                                              "event_lastupdate) "
                                              "VALUES ('%1', '%2', %3, '%4', '%5')")
-                    .arg(trainId)
+                    .arg(plateNumber)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
                     .arg(EVENT_TRAIN_CHANGE_SPEED_LIMIT)
                     .arg(description)
                     .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
 
             if(connectionDatabase && connectionDatabase->execQuery(sqlInsertEvent)){
-                qDebug() << QString("Train %1 event change speed limit is inserted").arg(trainId);
+                qDebug() << QString("vehicle %1 event change speed limit is inserted").arg(plateNumber);
             }
         }
             break;
@@ -424,21 +454,12 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     case CMD_BIRDIR_ACK:
         break;
     case CMD_SYS_GET:
-    {
         qDebug() <<"CMD_SYS_GET";
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
-        trainId = QString(HardDev.NameDevice);
+        plateNumber = QString(HardDev.NameDevice).trimmed();
 
-        QString sqlScanDevice = QString("SELECT * FROM tbl_train WHERE train_id = '%1'").arg(trainId);
-        QSqlQuery query;
-        connectionDatabase->execQuery(query, sqlScanDevice);
-        if (!query.next()) {
-            tcpSocket ->disconnectFromHost();
-            qDebug() << "unknow device...disconected";
-        }
-    }
         break;
     default:
         qDebug() <<"UnKnowCmd";
@@ -538,7 +559,7 @@ void VehicleConnection::run()
     //hoi ten sau 15p
     requestInfoTimer = new QTimer(this);
     connect(requestInfoTimer, SIGNAL(timeout()), this, SLOT(slot_requestInfoTimer()));
-    requestInfoTimer->start(900000);
+    requestInfoTimer->start(300000);
 
     connectionDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","VehicleConnection");
     exec()  ;
