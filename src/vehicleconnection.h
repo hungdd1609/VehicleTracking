@@ -141,6 +141,7 @@ private:
     void Sys7bInput(unsigned char data);
     signed short EncodeDataPack(unsigned char *inbuf,unsigned short count);
     unsigned short DecodeDataPack(unsigned char *in2outbuff,unsigned short count);
+    float ConvertGPSdegreeToGPSDecimal(long input);
 
     unsigned char Sys7bRevBuff[SYS7B_REV_BUFF_SIZE];
     Event EventSpeed;

@@ -48,6 +48,14 @@ VehicleConnection::~VehicleConnection(){
     qDebug()<<"VehicleConnection::~VehicleConnection()";
 }
 
+float VehicleConnection::ConvertGPSdegreeToGPSDecimal(long Valua){
+    unsigned char degree;
+    float min;
+    degree = Valua/1000000;
+    min = (Valua - degree*1000000)/10000.0;
+    min = degree + min/60.0;
+    return min;
+}
 
 signed short VehicleConnection::EncodeDataPack(unsigned char inbuf[],unsigned short count)
 {
@@ -152,6 +160,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     int eventpck=0;
     unsigned char l;
     QString eTime, vehicleLabel;
+    QString longitude, latitude;
     QDateTime gpsTime;
     PBuff[0]=128;
     TotalRevPCk++;
@@ -164,9 +173,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         SendPck(PBuff,1,CMD_BIRDIR_ACK,Pck[len-3]);
         //eventpck++;
         l=DecodeDataPack(Pck,len-3);
-
-        //get train's data
-        memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
 
         switch(Pck[0]&0x3F){
         case REC_GPS_ABS://Ban ghi Gps tuyet doi
@@ -209,6 +215,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 qDebug() << "unknow vehicle........";
                 break;
             }
+
+            //get train's data
+            memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s));
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s));
 
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
@@ -265,8 +276,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                                 "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14') ")
                     .arg(plateNumber)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
-                    .arg(TraiRevRec.Long1s)
-                    .arg(TraiRevRec.Lat1s)
+                    .arg(longitude)
+                    .arg(latitude)
                     .arg(0) //van toc gps
                     .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1]))
                     .arg(0) //van toc dong ho
@@ -341,11 +352,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(vehicleLabel) //ma chuyen
                     .arg(1) //phu lai
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
-                    .arg(TraiRevRec.Long1s)
-                    .arg(TraiRevRec.Lat1s)
-                    .arg(0) //van toc gps
+                    .arg(longitude)
+                    .arg(latitude)
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc gps
                     .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1])) //van toc banh xe
-                    .arg(0) //van toc dong ho
+                    .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong ho
                     .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong co
                     .arg(TraiRevRec.LimitSpeed) //gioi han toc do
                     .arg(TraiRevRec.KmM) //ly trinh
@@ -353,6 +364,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(0) //huong
                     .arg(GpsStates)
                     .arg(rawData);
+
+            qDebug() << sqlInsertOrUpdateTrain;
 
             if(connectionDatabase && connectionDatabase->startTransaction()){
                 if(connectionDatabase->execQuery(sqlInsertTrainLog)
