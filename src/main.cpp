@@ -30,9 +30,5 @@ int main(int argc, char *argv[])
     //VehicleTrackingServer vehicleTrackingServer(QDateTime::fromString(QDateTime::currentDateTime().toString("yyyy-MM-dd"), "yyyy-MM-dd").addDays(-60), 0, 1235);
     VehicleTrackingServer vehicleTrackingServer;
 
-
-    //asdasd;
-    //1234567
-
     return a.exec();
 }
