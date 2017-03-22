@@ -62,10 +62,16 @@ VehicleTrackingServer::VehicleTrackingServer()
     qDebug() << "---------done!--------------" << listenPort;
     */
 }
-void VehicleTrackingServer::slot_mainTimer_timeout(){    
+void VehicleTrackingServer::slot_mainTimer_timeout(){
+    createPartition("tbl_phuongtienlog");
+    createPartition("tbl_event");
+}
+
+void VehicleTrackingServer::createPartition(QString table){
     //-/manage backup
     //-/-/check and create partition
-    QString getLstPartition = "SELECT partition_name FROM information_schema.partitions WHERE table_name ='tbl_phuongtienlog' ORDER BY partition_name DESC Limit 1";
+    QString getLstPartition = QString("SELECT partition_name FROM information_schema.partitions WHERE table_name ='%1' ORDER BY partition_name DESC Limit 1")
+            .arg(table);\
     QSqlQuery qLstPartition;
 
     if(serverDatabase && serverDatabase->execQuery(qLstPartition,getLstPartition)) {
@@ -83,9 +89,11 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                     lstPartitionDate = lstPartitionDate.addDays(1);
                 }
 
+
                 while (lstPartitionDate.daysTo(QDateTime::currentDateTime()) >= -1 ) {
-                    QString addPartition = QString("ALTER TABLE tbl_phuongtienlog "
-                                                   "ADD PARTITION (PARTITION p%1 VALUES LESS THAN ( TO_DAYS('%2')))")
+                    QString addPartition = QString("ALTER TABLE %1 "
+                                                   "ADD PARTITION (PARTITION p%2 VALUES LESS THAN ( TO_DAYS('%3')))")
+                            .arg(table)
                             .arg(lstPartitionDate.toString("yyyyMMdd"))
                             .arg(lstPartitionDate.addDays(1).toString("yyyy-MM-dd hh:mm:ss"));
                     if (serverDatabase && serverDatabase->execQuery(addPartition)) {
@@ -96,9 +104,6 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
             }
         }
     }
-
-    //-/-/clear expired data
-
 }
 
 void VehicleTrackingServer::slot_newConnection(){

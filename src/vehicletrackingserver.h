@@ -19,6 +19,7 @@ private:
     int listenPort, maxPendingConnection, dataStorageTime;
     QList <VehicleConnection *>connectionList;
 
+    void createPartition(QString table);
     //for insert test data
     QDateTime begin;
     int threshold;
