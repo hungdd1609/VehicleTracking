@@ -240,6 +240,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             }
 
             qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
+                     << "Train id" << plateNumber
                      << "" << vehicleLabel
                      << "KmM" << TraiRevRec.KmM
                      << "Latitude" << TraiRevRec.Lat1s
@@ -357,7 +358,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(1) //to chuc
                     .arg(plateNumber) //bien so
                     .arg(1) //lai chinh
-                    .arg(name_way_flash[TraiRevRec.TrainName]) //tuyen duong
+                    .arg(TraiRevRec.TrainName + 1) //tuyen duong
                     .arg(vehicleLabel) //ma chuyen
                     .arg(1) //phu lai
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
@@ -374,10 +375,11 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(GpsStates)
                     .arg(rawData);
 
-            //            qDebug() << "1---" << lastTime;
-            //            qDebug() << "2---" << current;
-            //            qDebug() << "lastTime.secsTo(gpsTime)" << lastTime.secsTo(gpsTime);
-            //            qDebug() << "lastTime.secsTo(current))" << lastTime.secsTo(current);
+            qDebug() << "1---" << lastTime;
+            qDebug() << "2---" << current;
+            //            if(connectionDatabase->execQuery(sqlInsertOrUpdateTrain)){
+            //                qDebug() << QString("%1 is inserted to tbl_phuongtien").arg(vehicleLabel);
+            //            }
             if(lastTime.secsTo(gpsTime) < 0
                     || lastTime.secsTo(current) > 15
                     || lastTime.secsTo(current) < 0){
