@@ -6,11 +6,33 @@
 #include <QTimer>
 #include "vehicleconnection.h"
 #include "cprtfcdatabase.h"
+
+struct VehicleLog{
+    //QString bienso;
+    QDateTime thoigian;
+    double kinhdo;
+    double vido;
+    double vantocGps;
+    double vantocDongho;
+    int lytrinh;
+    int trangthaiGps;
+    int huong;
+};
+//------------------------------------------------------------------------
+struct HanhTrinh{
+    QDateTime thoigianBatdau;
+    double kinhdoBatdau;
+    double vidoBatdau;
+    QDateTime thoigianKetthuc;
+    double kinhdoKetthuc;
+    double vidoKetthuc;
+};
+//------------------------------------------------------------------------
+
 class VehicleTrackingServer : public QObject
 {
     Q_OBJECT
-public:
-    //VehicleTrackingServer(QDateTime begin, int threshold, int listenPort);
+public:    
     VehicleTrackingServer();
 private:
     CprTfcDatabase *serverDatabase;
@@ -18,11 +40,11 @@ private:
     QTcpServer *tcpServer;
     int listenPort, maxPendingConnection, dataStorageTime;
     QList <VehicleConnection *>connectionList;
+    QMap <QString , QList<VehicleLog> > mapVehicleLog;
+    QMap <QString , HanhTrinh> mapHanhTrinh;
+    QDateTime lastVehicleLog;
 
     void createPartition(QString table);
-    //for insert test data
-    QDateTime begin;
-    int threshold;
 
 signals:
 

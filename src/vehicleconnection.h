@@ -24,6 +24,7 @@
 #define TYPE_CAR 1
 #define TYPE_TRAIN 2
 
+
 struct SDateTime{
     unsigned char Hour;
     unsigned char Min;
@@ -115,6 +116,7 @@ enum EventType{
     EVENT_TRAIN_CHANGE_SPEED_LIMIT,
 };
 #pragma pack(pop)   /* restore original alignment from stack */
+//-------------------------------------------------------------------------------
 
 
 class VehicleConnection : public QThread
