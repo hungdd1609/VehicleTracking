@@ -45,6 +45,7 @@ private:
     QDateTime lastVehicleLog;
 
     void createPartition(QString table);
+    void finishJourney(QString key, VehicleLog v);
 
 signals:
 
