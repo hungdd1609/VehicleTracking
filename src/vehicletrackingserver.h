@@ -40,12 +40,13 @@ private:
     QTcpServer *tcpServer;
     int listenPort, maxPendingConnection, dataStorageTime;
     QList <VehicleConnection *>connectionList;
-    QMap <QString , QList<VehicleLog> > mapVehicleLog;
-    QMap <QString , HanhTrinh> mapHanhTrinh;
+    QMap <QString, QList<VehicleLog> > mapVehicleLog;
+    QMap <QString, HanhTrinh> mapHanhTrinh;
+    QMap <QString,int> mapDieuKien;
     QDateTime lastVehicleLog;
 
     void createPartition(QString table);
-    void finishJourney(QString key, VehicleLog v);
+    bool finishJourney(QString key, VehicleLog v);
 
 signals:
 
