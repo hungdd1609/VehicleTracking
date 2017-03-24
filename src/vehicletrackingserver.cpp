@@ -25,7 +25,7 @@ VehicleTrackingServer::VehicleTrackingServer()
 
     serverDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","ServerConnection",true);
 
-    lastVehicleLog = QDateTime::fromString("2017-03-23 14:28:44", "yyyy-MM-dd hh:mm:ss");
+    lastVehicleLog = QDateTime::fromString("2017-03-23 14:00:44", "yyyy-MM-dd hh:mm:ss");
     //todo get lasttime of incomplete journey in DB
     QString sqlSelectHanhTrinh =
             QString(" SELECT  hanhtrinh_bienso ,  hanhtrinh_thoigian_batdau , "
@@ -207,7 +207,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                                     QString(" INSERT INTO  tbl_hanhtrinh(hanhtrinh_bienso ,  hanhtrinh_thoigian_batdau , "
                                             "   hanhtrinh_kinhdo_batdau ,  hanhtrinh_vido_batdau , hanhtrinh_thoigian_ketthuc , "
                                             "   hanhtrinh_kinhdo_ketthuc , hanhtrinh_vido_ketthuc ,  hanhtrinh_capdo , "
-                                            "   hanhtrinh_trangthai, hanhtrinh_tuyenduong, hanhtrinh_machuyen ) "
+                                            "   hanhtrinh_trangthai, hanhtrinh_tuyenduong_id, hanhtrinh_machuyen ) "
                                             " VALUES ( '%1',  '%2', %3, %4, '%5', %6, %7, 0, 0, "
                                             "           (SELECT  phuongtien_tuyenduong FROM `tbl_phuongtien` WHERE phuongtien_bienso = '%1' limit 1), "
                                             "           (SELECT  phuongtien_machuyen FROM `tbl_phuongtien` WHERE phuongtien_bienso = '%1' limit 1))")
