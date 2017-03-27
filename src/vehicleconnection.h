@@ -24,6 +24,7 @@
 #define TYPE_CAR 1
 #define TYPE_TRAIN 2
 
+#define PERIOD_TIME 30
 
 struct SDateTime{
     unsigned char Hour;
