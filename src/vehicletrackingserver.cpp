@@ -1,7 +1,7 @@
 #include "vehicletrackingserver.h"
 #include <QTcpSocket>
 #define PREFIX "VehicleTrackingServer:"
-#define DATA_PATH "DATA"
+#define DATA_PATH "/var/www/html/CadProVTS/data/DATA"
 #define REST_TIME 300
 
 VehicleTrackingServer::VehicleTrackingServer()
@@ -285,21 +285,23 @@ bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
     QSqlQuery queryData;
     if(serverDatabase && serverDatabase->execQuery(sqlSelectData,queryData)) {
 
-        QString fileName = QString("%1/%2/data_%3_%4_%5")
-                .arg(DATA_PATH)
+        QString fileName = QString("%1/data_%2_%3_%4")
                 .arg(key)
                 .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyyMMddhhmmss"))
                 .arg(v.thoigian.toString("yyyyMMddhhmmss"))
                 .arg(QString::number(QDateTime::currentMSecsSinceEpoch()));
+        QString directory = QString("%1/%2")
+                .arg(DATA_PATH)
+                .arg(fileName);
 
-        qDebug() << fileName;
+        qDebug() << directory;
 
-        QString filePath = fileName.left(fileName.lastIndexOf("/"));
+        QString filePath = directory.left(directory.lastIndexOf("/"));
         QDir dir(filePath);
         if (!dir.exists()) {
             dir.mkpath(".");
         }
-        QFile file(fileName);
+        QFile file(directory);
         file.open(QIODevice::WriteOnly | QIODevice::Text);
         QTextStream out(&file);
 
