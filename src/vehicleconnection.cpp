@@ -381,7 +381,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             //                qDebug() << QString("%1 is inserted to tbl_phuongtien").arg(vehicleLabel);
             //            }
             if(lastTime.secsTo(gpsTime) < 0
-                    || lastTime.secsTo(current) > 15
+                    || !(lastTime.secsTo(current) > PERIOD_TIME)
                     || lastTime.secsTo(current) < 0){
                 qDebug() << "thoi gian khong hop le";
                 break;
