@@ -73,7 +73,7 @@ VehicleTrackingServer::VehicleTrackingServer()
     }
 
     //test write log
-    writeLog("D10H-005", QDateTime::fromString("2017-03-27 15:44:02", "yyyy-MM-dd hh:mm:ss"), QDateTime::fromString("2017-03-27 15:48:02", "yyyy-MM-dd hh:mm:ss"), "data/test.txt");
+    writeLog("D10H-005", QDateTime::fromString("2017-03-27 15:44:02", "yyyy-MM-dd hh:mm:ss"), QDateTime::fromString("2017-03-27 15:48:02", "yyyy-MM-dd hh:mm:ss"), "data/2017-03-28.log");
 
     mainTimer = new QTimer(this);
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(slot_mainTimer_timeout()));
@@ -249,7 +249,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
 
                                     if(serverDatabase) serverDatabase->execQuery(sqlInsertHanhTrinh);
 
-//                                    mapDieuKien[tmpKey] = 0;
+                                    //                                    mapDieuKien[tmpKey] = 0;
                                 }
                             }
                         }
@@ -377,45 +377,52 @@ bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end
         }
 
 
-        if(queryData.size() > 0) {
-            while(queryData.next()){
-
-                //out << queryData.value(0).toByteArray() << endl;
-                qDebug() << "-----------read record------------";
-                qDebug() << queryData.value(0).toString();
+        if(queryData.size() > 1) {
+            if(queryData.next()) {
                 QByteArray input = QByteArray::fromHex(queryData.value(0).toString().toAscii());
-
-                for(int i =0; i< input.size(); i++){
-                    qDebug()<< (unsigned char)input.at(i);
-                }
-
                 memcpy(&TraiRevRec,input,sizeof(TrainAbsRec));
+            }
+
+
+            while(queryData.next()){
+                TrainAbsRec nextState;
+                QByteArray nextInput = QByteArray::fromHex(queryData.value(0).toString().toAscii());
+                memcpy(&nextState,nextInput,sizeof(TrainAbsRec));
+
+                long longDif = nextState.Long1s - TraiRevRec.Long1s;
+                long latDif = nextState.Lat1s - TraiRevRec.Lat1s;
 
                 QDateTime gpsTime;
-
                 gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
                 gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
 
-                qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
-                         << "KmM" << TraiRevRec.KmM
-                         << "Latitude" << TraiRevRec.Lat1s
-                         << "Longitude" <<TraiRevRec.Long1s
-                         << "train label" <<TraiRevRec.TrainLabel
-                         << "train name" << TraiRevRec.TrainName
-                         << "train height" << TraiRevRec.Height;
+
+                int tmpKmM = TraiRevRec.KmM;
 
                 for(int i = 0; i < TIME_SEND_DATA_SERVER; i++){
-                    GsPosLog.Km = TraiRevRec.KmM / 1000;
-                    GsPosLog.m = TraiRevRec.KmM % 1000;
+                    int s = i>0?TraiRevRec.SpeedBuff[i-1]/3.6:0;
+                    tmpKmM += s;
+
+                    GsPosLog.Km = tmpKmM / 1000;
+                    GsPosLog.m =  tmpKmM % 1000;
                     GsPosLog.Rundirection = 0;
                     GsPosLog.Presure = TraiRevRec.PresBuff[i];
                     GsPosLog.Speed = TraiRevRec.SpeedBuff[i];
-                    GsPosLog.Long = TraiRevRec.Long1s;
-                    GsPosLog.Lat = TraiRevRec.Lat1s;
+                    GsPosLog.Long = TraiRevRec.Long1s + longDif*i/20;
+                    GsPosLog.Lat = TraiRevRec.Lat1s + latDif*i/20;
+
+                    TraiRevRec.TimeNow1s.Year = gpsTime.addSecs(i).toString("yyyy").toShort() - 2000;
+                    TraiRevRec.TimeNow1s.Month = gpsTime.addSecs(i).toString("MM").toShort();
+                    TraiRevRec.TimeNow1s.Day = gpsTime.addSecs(i).toString("dd").toShort();
+                    TraiRevRec.TimeNow1s.Hour = gpsTime.addSecs(i).toString("hh").toShort();
+                    TraiRevRec.TimeNow1s.Min = gpsTime.addSecs(i).toString("mm").toShort();
+                    TraiRevRec.TimeNow1s.Sec = gpsTime.addSecs(i).toString("ss").toShort();
                     GsPosLog.DateTime = TraiRevRec.TimeNow1s;
 
                     WriteBuffLog(GsPosLog, fileName);
                 }
+
+                TraiRevRec = nextState;
             }
         }
     } else {
@@ -458,6 +465,7 @@ bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
         if(serverDatabase && serverDatabase->execQuery(sqlKetThucHanhTrinh)) {
             //-/xoa hanh trinh ra khoi map
             mapHanhTrinh.remove(key);
+            qDebug() << "mapHanhTrinh -> remove:" << key;
         } else {
             return false;
         }
