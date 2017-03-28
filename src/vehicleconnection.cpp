@@ -1,6 +1,7 @@
 #include "vehicleconnection.h"
 #include <stdio.h>
 #include <string.h>
+#include <QTextCodec>
 static const unsigned char bitmap[]={1,2,4,8,16,32,64,128};
 
 typedef const char* railway;// ten tuyen
@@ -157,7 +158,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 {
     unsigned char PBuff[256];
     unsigned char GpsStates,NumOfSat;
-    int eventpck=0;
     unsigned char l;
     QString eTime, vehicleLabel;
     QString longitude, latitude;
@@ -171,7 +171,6 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         break;
     case CMD_DEV_EVENT:
         SendPck(PBuff,1,CMD_BIRDIR_ACK,Pck[len-3]);
-        //eventpck++;
         l=DecodeDataPack(Pck,len-3);
         current = QDateTime::currentDateTime();
         switch(Pck[0]&0x3F){
@@ -222,6 +221,10 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
             //get train's data
             memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
+            QByteArray trainRev((char*)Pck+1,sizeof(TrainAbsRec));
+            QString cData = trainRev.toHex();
+
+
             longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s));
             latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s));
 
@@ -301,7 +304,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(TraiRevRec.KmM)
                     .arg(0) //huong
                     .arg(GpsStates)
-                    .arg(rawData);
+                    .arg(cData);
 
             if(connectionDatabase->execQuery(sqlInsertTrainLog)){
                 qDebug() << QString("%1 is inserted to tbl_phuongtienlog").arg(vehicleLabel);
@@ -373,7 +376,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1])) //ap suat
                     .arg(0) //huong
                     .arg(GpsStates)
-                    .arg(rawData);
+                    .arg(cData);
 
             qDebug() << "1---" << lastTime;
             qDebug() << "2---" << current;
@@ -534,11 +537,10 @@ void VehicleConnection::slot_readyRead(){
     lastRecvTime = QDateTime::currentDateTime();
     qDebug()<< "VehicleConnection::slot_readyRead()";
     QByteArray input = tcpSocket->readAll();
+
     for(int i=0; i < input.length(); i++) {
-        Sys7bInput((unsigned char)input.at(i));
+        Sys7bInput((unsigned char)input.at(i));        
     }
-    rawData = input.toHex();
-    //    qDebug() << "RecvData" << input.size() << rawData;
 }
 
 void VehicleConnection::slot_socketDisconnected(){

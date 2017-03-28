@@ -3,6 +3,11 @@
 #define PREFIX "VehicleTrackingServer:"
 #define DATA_PATH "/var/www/html/CadProVTS/data/DATA"
 #define REST_TIME 300
+#define MIN_PKG 2
+#define HeaderAbsWrite 0
+#define HeaderRwWrite  1
+
+
 
 VehicleTrackingServer::VehicleTrackingServer()
 {
@@ -13,6 +18,11 @@ VehicleTrackingServer::VehicleTrackingServer()
     listenPort = iniFile.value("ListenPort",1234).toInt();
     maxPendingConnection = iniFile.value("MaxPendingConnection",1000).toInt();
     dataStorageTime  = iniFile.value("DataStorageTime",60).toInt();
+    dataPath = iniFile.value("DataPath", DATA_PATH).toString();
+    minRestTime =  iniFile.value("MinRestTime", REST_TIME).toInt();
+    minPackage =  iniFile.value("MinPackage", MIN_PKG).toInt();
+    Modew = 0;
+    CoutBuff=0;
 
     tcpServer = NULL;
     tcpServer = new QTcpServer();
@@ -25,7 +35,8 @@ VehicleTrackingServer::VehicleTrackingServer()
 
     serverDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","ServerConnection",true);
 
-    lastVehicleLog = QDateTime::fromString("2017-03-23 14:00:44", "yyyy-MM-dd hh:mm:ss");
+    //lastVehicleLog = QDateTime::fromString("2017-03-23 14:00:44", "yyyy-MM-dd hh:mm:ss");
+    lastVehicleLog = QDateTime::currentDateTime();
     //todo get lasttime of incomplete journey in DB
     QString sqlSelectHanhTrinh =
             QString(" SELECT  hanhtrinh_bienso ,  hanhtrinh_thoigian_batdau , "
@@ -60,6 +71,9 @@ VehicleTrackingServer::VehicleTrackingServer()
         qDebug() << "Get journey error!!!";
         exit(99);
     }
+
+    //test write log
+    writeLog("D10H-005", QDateTime::fromString("2017-03-27 15:44:02", "yyyy-MM-dd hh:mm:ss"), QDateTime::fromString("2017-03-27 15:48:02", "yyyy-MM-dd hh:mm:ss"), "data/test.txt");
 
     mainTimer = new QTimer(this);
     connect(mainTimer, SIGNAL(timeout()), this, SLOT(slot_mainTimer_timeout()));
@@ -138,7 +152,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
 
         //-/-/-/ neu hanh trinh cu cach qua xa thi ngat'
         if(mapHanhTrinh.contains(tmpKey)) {
-            if(mapHanhTrinh[tmpKey].thoigianKetthuc.secsTo(tmpVlog.thoigian) >  REST_TIME) {
+            if(mapHanhTrinh[tmpKey].thoigianKetthuc.secsTo(tmpVlog.thoigian) >  minRestTime) {
                 //-/-/-/-/ ket thuc hanh trinh cu
                 VehicleLog v;
                 v.thoigian = mapHanhTrinh[tmpKey].thoigianKetthuc;
@@ -195,7 +209,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                     } else {
                         mapDieuKien[tmpKey] = mapDieuKien[tmpKey] + 1;
 
-                        if(mapDieuKien[tmpKey] >= 3) {
+                        if(mapDieuKien[tmpKey] >= minPackage) {
                             //-/ thoi gian lon hon hanh trinh moi nhat thi dc tao hanh trinh moi
                             QString sqlLastTime =
                                     QString(" SELECT COALESCE(max(hanhtrinh_thoigian_ketthuc) ,'2000-01-01 00:00:00') "
@@ -249,7 +263,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                     mapDieuKien[tmpKey] = mapDieuKien[tmpKey] - 1;
 
                     //if((lastStatus.vantocDongho > 0 || lastStatus.vantocGps >0) && mapHanhTrinh.contains(tmpKey)){
-                    if(mapDieuKien[tmpKey] <= -3 && mapHanhTrinh.contains(tmpKey)){
+                    if(mapDieuKien[tmpKey] <= -minPackage && mapHanhTrinh.contains(tmpKey)){
                         //cap nhat lai DB hanh trinh vua thuc hien
                         if (finishJourney(tmpKey,tmpVlog)) {
                             mapDieuKien.remove(tmpKey);
@@ -268,11 +282,81 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
     }
 }
 
+void VehicleTrackingServer::WriteBuffLog(GsThOldLogRec GsPosLog, QString NameFile){
+    switch(Modew){
+    case HeaderAbsWrite:
+        ConvertToOldBuff(&GsPosLog, WrBuff,NULL);
+        CoutBuff = 16;
+        Modew = HeaderRwWrite;
+        break;
+    case HeaderRwWrite:
+        if(CoutBuff <= 256){
+            ConvertToOldBuff(&GsPosLog, NULL, WrBuff + CoutBuff);
+            CoutBuff += 6;
+            if(CoutBuff==256){
+                pw = fopen(NameFile.toStdString().c_str(),"a+");
+                if(pw != NULL){
+                    //fwrite(pw, WrBuff, 256);
+                    fwrite(WrBuff, sizeof(unsigned char), 256, pw);
+                    fclose(pw);
+                }
+                CoutBuff = 0;
+                Modew = HeaderAbsWrite;
+            }
+        }
+        break;
+    default:
+        break;
+    }
+}
 
-bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
-    qDebug() << "ket thuc hanh trinh" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
+void VehicleTrackingServer::ConvertToOldBuff(GsThOldLogRec* Rec,unsigned char OutBuff16[],unsigned char Buff6[]){
+    int LyTrinhM;
+    static GsThOldLogRec FirstBlogRec;
+    if(OutBuff16!=NULL){
+        FirstBlogRec=*Rec;
+        OutBuff16[0]=Rec->DateTime.Day;
+        OutBuff16[1]=(Rec->DateTime.Month&0x0F)|(Rec->IdTuyen<<4);
+        OutBuff16[2]=(Rec->Rundirection&1);//Need more
 
-    //-/tao file data
+        LyTrinhM=Rec->Km*1000+Rec->m;
+        OutBuff16[3]=LyTrinhM>>16;
+        OutBuff16[4]=LyTrinhM>>8;
+        OutBuff16[5]=LyTrinhM;
+
+        OutBuff16[6]=Rec->Altitude/256;
+        OutBuff16[7]=Rec->Altitude&255;
+        int h,l;
+        //--------------------------------------
+        h=Rec->Lat/10000;
+        l=Rec->Lat%10000;
+        OutBuff16[8]=h>>8;
+        OutBuff16[9]=h&0xFF;
+        OutBuff16[10]=l>>8;
+        OutBuff16[11]=l&0xFF;
+        //----------------------------------------------
+        h=Rec->Long/10000;
+        l=Rec->Long%10000;
+        OutBuff16[12]=h>>8;
+        OutBuff16[13]=h&0xFF;
+        OutBuff16[14]=l>>8;
+        OutBuff16[15]=l&0xFF;
+    }
+    //-----------------------------------------------------------------
+    if(Buff6!=NULL){
+        Buff6[1]=(Rec->DateTime.Hour<<3)|(Rec->DateTime.Min>>3);
+        //Buff6[0]=(Rec->DateTime.Min<<5)|(Rec->DateTime.Sec/2);
+        Buff6[0]=(Rec->DateTime.Min<<5) | (Rec->DateTime.Sec/2);
+        unsigned char Speed;
+        Speed=Rec->Speed*10;
+        Buff6[3]=Speed&0xFF;
+        Buff6[2]=(Speed>>8)&0x03;//|(Rec->Presure<<2);
+        signed short mm=(Rec->Km*1000+Rec->m)-(FirstBlogRec.Km*1000+FirstBlogRec.m);
+        memcpy(Buff6+4,&mm,2);
+    }
+}
+
+bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end, QString fileName){
     QString sqlSelectData =
             QString(" SELECT phuongtienlog_extdata "
                     " FROM tbl_phuongtienlog "
@@ -280,40 +364,79 @@ bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
                     "   AND  `phuongtienlog_thoigian` <=  '%2' "
                     "   AND  `phuongtienlog_thoigian` >=  '%3' ")
             .arg(key)
-            .arg(v.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
-            .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"));
+            .arg(end.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(begin.toString("yyyy-MM-dd hh:mm:ss"));
     QSqlQuery queryData;
+
     if(serverDatabase && serverDatabase->execQuery(sqlSelectData,queryData)) {
 
-        QString fileName = QString("%1/data_%2_%3_%4")
-                .arg(key)
-                .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyyMMddhhmmss"))
-                .arg(v.thoigian.toString("yyyyMMddhhmmss"))
-                .arg(QString::number(QDateTime::currentMSecsSinceEpoch()));
-        QString directory = QString("%1/%2")
-                .arg(DATA_PATH)
-                .arg(fileName);
-
-        qDebug() << directory;
-
-        QString filePath = directory.left(directory.lastIndexOf("/"));
+        QString filePath = fileName.left(fileName.lastIndexOf("/"));
         QDir dir(filePath);
         if (!dir.exists()) {
             dir.mkpath(".");
         }
-        QFile file(directory);
-        file.open(QIODevice::WriteOnly | QIODevice::Text);
-        QTextStream out(&file);
+
 
         if(queryData.size() > 0) {
             while(queryData.next()){
-                out << queryData.value(0).toByteArray() << endl;
+
+                //out << queryData.value(0).toByteArray() << endl;
+                qDebug() << "-----------read record------------";
+                qDebug() << queryData.value(0).toString();
+                QByteArray input = QByteArray::fromHex(queryData.value(0).toString().toAscii());
+
+                for(int i =0; i< input.size(); i++){
+                    qDebug()<< (unsigned char)input.at(i);
+                }
+
+                memcpy(&TraiRevRec,input,sizeof(TrainAbsRec));
+
+                QDateTime gpsTime;
+
+                gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
+                gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
+
+                qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
+                         << "KmM" << TraiRevRec.KmM
+                         << "Latitude" << TraiRevRec.Lat1s
+                         << "Longitude" <<TraiRevRec.Long1s
+                         << "train label" <<TraiRevRec.TrainLabel
+                         << "train name" << TraiRevRec.TrainName
+                         << "train height" << TraiRevRec.Height;
+
+                for(int i = 0; i < TIME_SEND_DATA_SERVER; i++){
+                    GsPosLog.Km = TraiRevRec.KmM / 1000;
+                    GsPosLog.m = TraiRevRec.KmM % 1000;
+                    GsPosLog.Rundirection = 0;
+                    GsPosLog.Presure = TraiRevRec.PresBuff[i];
+                    GsPosLog.Speed = TraiRevRec.SpeedBuff[i];
+                    GsPosLog.Long = TraiRevRec.Long1s;
+                    GsPosLog.Lat = TraiRevRec.Lat1s;
+                    GsPosLog.DateTime = TraiRevRec.TimeNow1s;
+
+                    WriteBuffLog(GsPosLog, fileName);
+                }
             }
         }
+    } else {
+        return false;
+    }
+    return true;
+}
 
-        file.close();
+bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
+    qDebug() << "ket thuc hanh trinh" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
 
+    QString fileName = QString("%1/%2/data_%3_%4_%5")
+            .arg(dataPath)
+            .arg(key)
+            .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyyMMddhhmmss"))
+            .arg(v.thoigian.toString("yyyyMMddhhmmss"))
+            .arg(QString::number(QDateTime::currentMSecsSinceEpoch()));
 
+    qDebug() << fileName;
+
+    if(writeLog(key, mapHanhTrinh[key].thoigianBatdau, v.thoigian, fileName)) {
         //-/update hanh trinh ve trang thai ket thuc
         QString sqlKetThucHanhTrinh =
                 QString(" UPDATE  tbl_hanhtrinh "

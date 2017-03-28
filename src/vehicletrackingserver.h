@@ -28,7 +28,22 @@ struct HanhTrinh{
     double vidoKetthuc;
 };
 //------------------------------------------------------------------------
-
+typedef struct GsThOldLogRec{
+    unsigned short Km;
+    unsigned short m;
+    int Rundirection;
+    SDateTime DateTime;
+    unsigned char IdTuyen;
+    unsigned char IdMacTau;
+    unsigned char Vps;
+    unsigned char VDauTruc;
+    unsigned short Altitude;//cao do
+    long Lat;
+    long Long;
+    unsigned char Presure;
+    unsigned char Speed;
+}GsThOldLogRec;
+//------------------------------------------------------------------------------
 class VehicleTrackingServer : public QObject
 {
     Q_OBJECT
@@ -37,16 +52,33 @@ public:
 private:
     CprTfcDatabase *serverDatabase;
     QTimer *mainTimer;
-    QTcpServer *tcpServer;
+    QTcpServer *tcpServer;    
     int listenPort, maxPendingConnection, dataStorageTime;
     QList <VehicleConnection *>connectionList;
     QMap <QString, QList<VehicleLog> > mapVehicleLog;
     QMap <QString, HanhTrinh> mapHanhTrinh;
     QMap <QString,int> mapDieuKien;
     QDateTime lastVehicleLog;
+    QString dataPath;
+    int minRestTime; //seconds
+    int minPackage;
+
+    GsThOldLogRec GsPosLog;
+    TrainAbsRec TraiRevRec;
+    unsigned char Modew;
+    unsigned char WrBuff[260];
+    char NameFile[25];
+    FILE *pw;
+    short CoutBuff;
+
+
+
 
     void createPartition(QString table);
     bool finishJourney(QString key, VehicleLog v);
+    bool writeLog(QString key, QDateTime begin, QDateTime end, QString fileName);
+    void ConvertToOldBuff(GsThOldLogRec* Rec,unsigned char OutBuff16[],unsigned char Buff6[]);
+    void WriteBuffLog(GsThOldLogRec GsPosLog, QString NameFile);
 
 signals:
 

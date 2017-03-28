@@ -26,6 +26,7 @@
 
 #define PERIOD_TIME 30
 
+
 struct SDateTime{
     unsigned char Hour;
     unsigned char Min;
