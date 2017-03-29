@@ -116,11 +116,10 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                 QList<VehicleLog> vLog;
                 vLog.append(tmpLog);
                 mapVehicleLog.insert(tmpBienso, vLog);
-                qDebug() << "add new key: "  << tmpBienso;
+//                qDebug() << "add new key: "  << tmpBienso;
             } else {
                 mapVehicleLog[tmpBienso].append(tmpLog);
-                //listLog.append(tmpLog);
-                qDebug() << "add to value to key: " << tmpBienso;
+//                qDebug() << "add to value to key: " << tmpBienso;
             }
         }
 
@@ -128,15 +127,6 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
         QMap<QString, QList<VehicleLog> >::const_iterator i;
         for (i = mapVehicleLog.constBegin(); i != mapVehicleLog.constEnd(); ++i) {
             qDebug() << i.key() << i.value().size();
-            //            QList<VehicleLog>::iterator j;
-            //            QList<VehicleLog> vehicleLog = i.value();
-            //            for(j = vehicleLog.begin(); j != vehicleLog.end(); j++) {
-            //                qDebug() << QString("time=%1, kinhdo=%2, vido=%3, lytrinh=%4")
-            //                            .arg((*j).thoigian.toString("yyyy-MM-dd hh:mm:ss"))
-            //                            .arg((*j).kinhdo)
-            //                            .arg((*j).vido)
-            //                            .arg((*j).lytrinh);
-            //            }
         }
     } else{
         qDebug() << PREFIX << "Scan VehicleLog error!";
@@ -176,7 +166,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                     }
 
                     if(mapHanhTrinh[tmpKey].thoigianKetthuc.secsTo(tmpVlog.thoigian) > 0 ) {
-                        qDebug() << "cap nhat lai" << tmpKey << mapHanhTrinh[tmpKey].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
+//                        qDebug() << "cap nhat lai" << tmpKey << mapHanhTrinh[tmpKey].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
                         mapHanhTrinh[tmpKey].thoigianKetthuc = tmpVlog.thoigian;
                         mapHanhTrinh[tmpKey].kinhdoKetthuc = tmpVlog.kinhdo;
                         mapHanhTrinh[tmpKey].vidoKetthuc = tmpVlog.vido;
@@ -192,8 +182,8 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                                         " WHERE hanhtrinh_bienso =  '%4' "
                                         "   AND hanhtrinh_thoigian_batdau =  '%5'")
                                 .arg(mapHanhTrinh[tmpKey].thoigianKetthuc.toString("yyyy-MM-dd hh:mm:ss"))
-                                .arg(QString::number(mapHanhTrinh[tmpKey].kinhdoKetthuc,'f',6))
-                                .arg(QString::number(mapHanhTrinh[tmpKey].vidoKetthuc,'f', 6))
+                                .arg(QString::number(mapHanhTrinh[tmpKey].kinhdoKetthuc,'f',9))
+                                .arg(QString::number(mapHanhTrinh[tmpKey].vidoKetthuc,'f', 9))
                                 .arg(tmpKey)
                                 .arg(mapHanhTrinh[tmpKey].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"));
 
@@ -241,11 +231,11 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                                                     "           (SELECT  phuongtien_machuyen FROM `tbl_phuongtien` WHERE phuongtien_bienso = '%1' limit 1))")
                                             .arg(tmpKey)
                                             .arg(hanhTrinh.thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"))
-                                            .arg(QString::number(hanhTrinh.kinhdoBatdau,'f',6))
-                                            .arg(QString::number(hanhTrinh.vidoBatdau,'f',6))
+                                            .arg(QString::number(hanhTrinh.kinhdoBatdau,'f',9))
+                                            .arg(QString::number(hanhTrinh.vidoBatdau,'f',9))
                                             .arg(hanhTrinh.thoigianKetthuc.toString("yyyy-MM-dd hh:mm:ss"))
-                                            .arg(QString::number(hanhTrinh.kinhdoKetthuc,'f',6))
-                                            .arg(QString::number(hanhTrinh.vidoKetthuc,'f',6));
+                                            .arg(QString::number(hanhTrinh.kinhdoKetthuc,'f',9))
+                                            .arg(QString::number(hanhTrinh.vidoKetthuc,'f',9));
 
                                     if(serverDatabase) serverDatabase->execQuery(sqlInsertHanhTrinh);
 
@@ -434,7 +424,7 @@ bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end
 bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
     qDebug() << "ket thuc hanh trinh" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
 
-    QString fileName = QString("%1/%2/data_%3_%4_%5")
+    QString fileName = QString("%1/%2/data_%1_%3_%4_%5")
             .arg(dataPath)
             .arg(key)
             .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyyMMddhhmmss"))
@@ -456,8 +446,8 @@ bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
                         " WHERE hanhtrinh_bienso =  '%5' "
                         "   AND hanhtrinh_thoigian_batdau =  '%6'")
                 .arg(v.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
-                .arg(QString::number(v.kinhdo,'f',6))
-                .arg(QString::number(v.vido,'f',6))
+                .arg(QString::number(v.kinhdo,'f',9))
+                .arg(QString::number(v.vido,'f',9))
                 .arg(fileName)
                 .arg(key)
                 .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"));

@@ -83,6 +83,7 @@ struct TrainAbsRec{
     unsigned int Lat1s;
     SDateTime TimeNow1s;
     short Height;           // do cao
+    short Heading; // Dregree
     unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
     unsigned char WheelSpeed[TIME_SEND_DATA_SERVER];

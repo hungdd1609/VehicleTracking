@@ -225,8 +225,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             QString cData = trainRev.toHex();
 
 
-            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s));
-            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s));
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s),'f',9);
 
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
@@ -236,6 +236,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
             // truong hop chua bat may se gui ve 255
             if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
+               qDebug() << "TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255";
                 break;
             }
             else{
@@ -244,8 +245,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
             qDebug() << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
                      << "Train id" << plateNumber
-                     << "" << vehicleLabel
+                     << "label" << vehicleLabel
                      << "KmM" << TraiRevRec.KmM
+                     << "Heading" << TraiRevRec.Heading
                      << "Latitude" << TraiRevRec.Lat1s
                      << "Longitude" <<TraiRevRec.Long1s
                      << "train label" <<TraiRevRec.TrainLabel
@@ -289,7 +291,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                                                 "phuongtienlog_lytrinh, "
                                                 "phuongtienlog_huong, "
                                                 "phuongtienlog_trangthaigps, "
-                                                "phuongtienlog_extdata) "
+                                                "phuongtienlog_extdata ) "
                                                 "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14') ")
                     .arg(plateNumber)
                     .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
@@ -302,7 +304,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(TraiRevRec.LimitSpeed)
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
                     .arg(TraiRevRec.KmM)
-                    .arg(0) //huong
+                    .arg(QString::number(TraiRevRec.Heading)) //huong
                     .arg(GpsStates)
                     .arg(cData);
 
@@ -374,7 +376,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     .arg(TraiRevRec.LimitSpeed) //gioi han toc do
                     .arg(TraiRevRec.KmM) //ly trinh
                     .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1])) //ap suat
-                    .arg(0) //huong
+                    .arg(QString::number(TraiRevRec.Heading)) //huong
                     .arg(GpsStates)
                     .arg(cData);
 
