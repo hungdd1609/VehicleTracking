@@ -10,13 +10,13 @@
 #pragma pack(push)  /* push current alignment to stack */
 #pragma pack(4)     /* set alignment to 1 byte boundary */
 
-#define SYS7B_REV_BUFF_SIZE 194
+#define SYS7B_REV_BUFF_SIZE 10240
 #define TIME_SEND_DATA_SERVER 20
 #define MAXDATAPACKSIZE 256
-#define CMD_DEBUG 0
-#define CMD_DEV_EVENT 1
-#define CMD_BIRDIR_ACK 2
-#define CMD_SYS_GET 3
+//#define CMD_DEBUG 0
+//#define CMD_DEV_EVENT 1
+//#define CMD_BIRDIR_ACK 2
+//#define CMD_SYS_GET 3
 
 #define max_name_way        7
 #define max_name_mac        28 // tuyến thống nhất
@@ -27,6 +27,8 @@
 #define PERIOD_TIME 30
 
 
+
+//-----------------------------------------------------------------------------
 struct SDateTime{
     unsigned char Hour;
     unsigned char Min;
@@ -120,7 +122,56 @@ enum EventType{
 };
 #pragma pack(pop)   /* restore original alignment from stack */
 //-------------------------------------------------------------------------------
+typedef struct ReadFileMng{
+    int Id;
+    QString Name;
+    QString Path;
+    int Status;
+    int Size;
+    int Block;
+    unsigned char* Buff;
+    QDateTime StartRead;
+    QDateTime EndRead;
+    int zeroCount;
+}ReadFileMng;
 
+//-------------------------------------------------------------------------------
+
+enum CPR_CMD{
+        CMD_DEBUG,
+        CMD_DEV_EVENT,
+        CMD_BIRDIR_ACK,
+        CMD_SYS_GET,
+        CMD_SYS_SET,
+        CMD_L7B_MNG,
+        CMD_FILE_MNG,
+};
+
+enum GprsFMngCmd{
+    CmdGprsFMngCreateF,
+    CmdGprsFMngWriteF,
+    CmdGprsFMngReadF,
+    CmdGprsFMngChangeFileName,
+    CmdGprsGetFileLen,
+    CmdGprsFileDelete,
+    CmdGprsGetFileListByTime,
+};
+
+//-------------------------------------------------------------------------------
+enum L7B_CMD_SET{
+    L7B_CMD_EARSE=0,
+    L7B_CMD_GET_LOG,
+};
+//-------------------------------------------------------------------------------
+enum READ_LOG_FILE_STATUS{
+    LOG_FILE_REQUEST_READ = 1,
+    LOG_FILE_SIZE_READING = 2,
+    LOG_FILE_SIZE_READ = 3,
+    LOG_FILE_PROCESSING = 4,
+    LOG_FILE_DONE = -1,
+    LOG_FILE_ERROR = -2
+};
+//
 
 class VehicleConnection : public QThread
 {
@@ -134,25 +185,46 @@ private:
     CprTfcDatabase *connectionDatabase;
     QTimer *connectionTimer;
     QTimer *requestInfoTimer;
+    QTimer *requestLogTimer;
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
     QString plateNumber;
     QString rawData;
-    unsigned short Sys7bREvIdx;
-    unsigned int TotalRevPCk;
     int state;
-    unsigned char SendPck(unsigned char* PayLoad,unsigned short PayLoadLen,unsigned char Cmd,unsigned char PckIdx);
-    void Sys7bProcessRevPck(unsigned char* Pck,unsigned short len);
-    void Sys7bInput(unsigned char data);
-    signed short EncodeDataPack(unsigned char *inbuf,unsigned short count);
-    unsigned short DecodeDataPack(unsigned char *in2outbuff,unsigned short count);
-    float ConvertGPSdegreeToGPSDecimal(long input);
-
+    unsigned int TotalRevPCk;
     unsigned char Sys7bRevBuff[SYS7B_REV_BUFF_SIZE];
+    unsigned short Sys7bREvIdx,lr,filelenpos;
     Event EventSpeed;
     TrainAbsRec TraiRevRec;
     UserInfor Usr;
     DevInfor HardDev;
+
+    ReadFileMng readFileMng;
+    FILE *pw;
+
+
+
+    QDateTime dateReqLog;
+    QDateTime lastReqLog;
+    bool isReqLog;
+    bool isFirstTime;
+    QString logPath;
+
+    bool Insert2PhuongTienLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table);
+    bool Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabel, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
+    bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
+    bool UpdateCommand(int id, QDateTime sent, int status);
+    void GetListFileLogBytime(QDateTime Start,QDateTime End,QString Filter);
+    void GetLogByTime(QDateTime qStart,QDateTime qEnd);
+    void GetFileSize(QString FileName);
+    void GprsFmngReadBlk(QString FileName, int StartAddr, int Len);
+    void Sys7bProcessRevPck(unsigned char* Pck,unsigned short len);
+    void Sys7bInput(unsigned char data);
+    float ConvertGPSdegreeToGPSDecimal(long input);
+    signed short EncodeDataPack(unsigned char *inbuf,unsigned short count);
+    unsigned short DecodeDataPack(unsigned char *in2outbuff,unsigned short count);
+    unsigned char SendPck(unsigned char* PayLoad,unsigned short PayLoadLen,unsigned char Cmd,unsigned char PckIdx);
+    SDateTime QDateTime2SDateTime(QDateTime);
 
 private slots:
     void slot_connectionTimer_timeout();
@@ -161,6 +233,7 @@ private slots:
     void slot_socketError(QAbstractSocket::SocketError socketError);
     void slot_socketDestroyed();
     void slot_requestInfoTimer();
+    void slot_requestLogTimer();
 protected:
     void run();
 };

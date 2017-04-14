@@ -29,8 +29,8 @@ VehicleTrackingServer::VehicleTrackingServer()
     tcpServer->setMaxPendingConnections(maxPendingConnection);
     connect(tcpServer, SIGNAL(newConnection()), this, SLOT(slot_newConnection()));
     if(tcpServer->listen(QHostAddress::Any, listenPort))
-        qDebug() << "Listen server started at" << tcpServer->serverAddress().toString() << tcpServer->serverPort();
-    else qDebug() << "Can not start listen server at" << tcpServer->serverAddress().toString();
+        qDebug() << PREFIX << "Listen server started at" << tcpServer->serverAddress().toString() << tcpServer->serverPort();
+    else qDebug() << PREFIX << "Can not start listen server at" << tcpServer->serverAddress().toString();
 
 
     serverDatabase = new CprTfcDatabase(qApp->applicationDirPath()+"/VehicleTracking.ini", "LocalDatabase","ServerConnection",true);
@@ -68,7 +68,7 @@ VehicleTrackingServer::VehicleTrackingServer()
             }
         }
     }else {
-        qDebug() << "Get journey error!!!";
+        qDebug() << PREFIX << "Get journey error!!!";
         exit(99);
     }
 
@@ -80,19 +80,14 @@ VehicleTrackingServer::VehicleTrackingServer()
     mainTimer->start(1000);
 }
 
-void VehicleTrackingServer::slot_mainTimer_timeout(){
-    qDebug() << "---------------------------------------------------";
-    createPartition("tbl_phuongtienlog");
-    createPartition("tbl_event");
-
-    //-/ tach hanh trinh
+void VehicleTrackingServer::scanNewLog(){
     //-/-/scan log
     QString sqlScanVehicleLog  =
             QString(" SELECT  phuongtienlog_bienso, phuongtienlog_thoigian, phuongtienlog_kinhdo, "
                     "      phuongtienlog_vido, phuongtienlog_vantoc_gps, phuongtienlog_vantoc_dongho, "
-                    "      phuongtienlog_lytrinh, phuongtienlog_huong, phuongtienlog_trangthaigps "
+                    "      phuongtienlog_lytrinh, phuongtienlog_huong, phuongtienlog_trangthaigps, phuongtienlog_id "
                     " FROM tbl_phuongtienlog "
-                    " WHERE phuongtienlog_thoigian > '%1' AND phuongtienlog_thoigian < '%2' "
+                    " WHERE phuongtienlog_thoigian > '%1' AND phuongtienlog_thoigian < '%2' AND phuongtienlog_hanhtrinhid is NULL "
                     " ORDER BY phuongtienlog_thoigian ASC limit 1000;")
             .arg(lastVehicleLog.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
@@ -109,6 +104,8 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
             tmpLog.lytrinh = queryScanVehicleLog.value(6).toInt();
             tmpLog.huong = queryScanVehicleLog.value(7).toInt();
             tmpLog.trangthaiGps = queryScanVehicleLog.value(8).toInt();
+            tmpLog.id = queryScanVehicleLog.value(9).toInt();
+            qDebug() << PREFIX << "phuongtienlog" << tmpLog.id;
             lastVehicleLog = tmpLog.thoigian;
 
             //-/-/them vao map
@@ -116,22 +113,21 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                 QList<VehicleLog> vLog;
                 vLog.append(tmpLog);
                 mapVehicleLog.insert(tmpBienso, vLog);
-//                qDebug() << "add new key: "  << tmpBienso;
             } else {
                 mapVehicleLog[tmpBienso].append(tmpLog);
-//                qDebug() << "add to value to key: " << tmpBienso;
             }
         }
 
-
         QMap<QString, QList<VehicleLog> >::const_iterator i;
         for (i = mapVehicleLog.constBegin(); i != mapVehicleLog.constEnd(); ++i) {
-            qDebug() << i.key() << i.value().size();
+            qDebug() << PREFIX << i.key() << i.value().size();
         }
     } else{
         qDebug() << PREFIX << "Scan VehicleLog error!";
     }
+}
 
+void VehicleTrackingServer::splitJourneyOnline(){
     //-/-/Tach hanh trinh bac 0
     QStringList listKey = mapVehicleLog.keys();
     for(int i = 0; i<listKey.size(); i++) {
@@ -166,7 +162,6 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                     }
 
                     if(mapHanhTrinh[tmpKey].thoigianKetthuc.secsTo(tmpVlog.thoigian) > 0 ) {
-//                        qDebug() << "cap nhat lai" << tmpKey << mapHanhTrinh[tmpKey].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
                         mapHanhTrinh[tmpKey].thoigianKetthuc = tmpVlog.thoigian;
                         mapHanhTrinh[tmpKey].kinhdoKetthuc = tmpVlog.kinhdo;
                         mapHanhTrinh[tmpKey].vidoKetthuc = tmpVlog.vido;
@@ -178,16 +173,22 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                                         "   hanhtrinh_kinhdo_ketthuc = %2, "
                                         "   hanhtrinh_vido_ketthuc = %3, "
                                         "   hanhtrinh_capdo = 0, "
-                                        "   hanhtrinh_trangthai = 0 "
-                                        " WHERE hanhtrinh_bienso =  '%4' "
-                                        "   AND hanhtrinh_thoigian_batdau =  '%5'")
+                                        "   hanhtrinh_trangthai = 0, "
+                                        "   hanhtrinh_thoigiancapnhat = '%4'"
+                                        " WHERE hanhtrinh_bienso =  '%5' "
+                                        "   AND hanhtrinh_thoigian_batdau =  '%6'")
                                 .arg(mapHanhTrinh[tmpKey].thoigianKetthuc.toString("yyyy-MM-dd hh:mm:ss"))
                                 .arg(QString::number(mapHanhTrinh[tmpKey].kinhdoKetthuc,'f',9))
                                 .arg(QString::number(mapHanhTrinh[tmpKey].vidoKetthuc,'f', 9))
+                                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
                                 .arg(tmpKey)
                                 .arg(mapHanhTrinh[tmpKey].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"));
 
                         if(serverDatabase) serverDatabase->execQuery(sqlUpdateHanhTrinh);
+
+                        //cap nhat lai phuongtienlog_hanhtrinhid
+                        updateHanhTrinhId(tmpKey, mapHanhTrinh[tmpKey].thoigianBatdau, tmpVlog.id);
+                        qDebug()<< "update 1 phuongtienlog" << tmpVlog.id;
                     }
                 } else {
                     //=> khong co key -> kiem tra tao hanh trinh moi
@@ -211,7 +212,7 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
                                 QDateTime lastTime = queryLastTime.value(0).toDateTime();
 
                                 if(lastTime.secsTo(tmpVlog.thoigian) > 0) {
-                                    qDebug() << "tao moi " << tmpKey << tmpVlog.thoigian.toString("yyyy-MM-dd hh:mm:ss");
+                                    qDebug() << PREFIX << "tao moi " << tmpKey << tmpVlog.thoigian.toString("yyyy-MM-dd hh:mm:ss");
                                     HanhTrinh hanhTrinh;
                                     hanhTrinh.thoigianBatdau = tmpVlog.thoigian;
                                     hanhTrinh.kinhdoBatdau = tmpVlog.kinhdo;
@@ -239,7 +240,10 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
 
                                     if(serverDatabase) serverDatabase->execQuery(sqlInsertHanhTrinh);
 
-                                    //                                    mapDieuKien[tmpKey] = 0;
+                                    //update phuongtienlog_hanhtrinhid
+                                    updateHanhTrinhId(tmpKey, mapHanhTrinh[tmpKey].thoigianBatdau, tmpVlog.id);
+                                    qDebug()<< "update 2 phuongtienlog" << tmpVlog.id;
+
                                 }
                             }
                         }
@@ -270,6 +274,180 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
             mapVehicleLog.remove(tmpKey);
         }
     }
+}
+
+void VehicleTrackingServer::updateHanhTrinhId(QString key, QDateTime batdau, int phuongtienlogid){
+    QString sqlUpdatePhuongTienLog =
+            QString(" UPDATE tbl_phuongtienlog "
+                    " SET phuongtienlog_hanhtrinhid = "
+                    "   (SELECT hanhtrinh_id "
+                    "       FROM tbl_hanhtrinh "
+                    "       WHERE hanhtrinh_bienso = '%1' AND hanhtrinh_thoigian_batdau =  '%2') "
+                    " WHERE phuongtienlog_id = %3 ")
+            .arg(key)
+            .arg(batdau.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(phuongtienlogid);
+    if(serverDatabase) serverDatabase->execQuery(sqlUpdatePhuongTienLog);
+}
+
+void VehicleTrackingServer::slot_mainTimer_timeout(){
+    qDebug() << PREFIX << "---------------------------------------------------";
+    createPartition("tbl_phuongtienlog");
+    createPartition("tbl_event");
+    createPartition("tbl_phuongtienlog2");
+
+    //-/ tach hanh trinh
+    //-/-/scan log online
+    scanNewLog();
+    //-/-/Tach hanh trinh bac 0
+    splitJourneyOnline();
+
+    //-/-/scan log bo sung
+    /* xu ly nhung ban ghi duoc gui bo sung
+     *  them vao hanh trinh gan nhat
+     *  neu cach hanh trinh gan nhat qua 30p thi tao hanh trinh moi
+     */
+    QString sqlScanAditionLog  =
+            QString(" SELECT  phuongtienlog_bienso, phuongtienlog_thoigian, phuongtienlog_kinhdo, "
+                    "      phuongtienlog_vido, phuongtienlog_vantoc_gps, phuongtienlog_vantoc_dongho, "
+                    "      phuongtienlog_lytrinh, phuongtienlog_huong, phuongtienlog_trangthaigps, phuongtienlog_id "
+                    " FROM tbl_phuongtienlog "
+                    " WHERE phuongtienlog_thoigian > '%1' AND phuongtienlog_thoigian < '%2' AND phuongtienlog_hanhtrinhid is NULL "
+                    " ORDER BY phuongtienlog_thoigian ASC limit 1000;")
+            .arg(QDateTime::currentDateTime().addDays(-2).toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(lastVehicleLog.toString("yyyy-MM-dd hh:mm:ss"));
+
+    QSqlQuery queryScanAditionLog;
+    if (serverDatabase && serverDatabase->execQuery(sqlScanAditionLog, queryScanAditionLog)) {
+        while(queryScanAditionLog.next()){
+
+            VehicleLog tmpLog;
+            QString tmpBienso = queryScanAditionLog.value(0).toString();
+            tmpLog.thoigian = queryScanAditionLog.value(1).toDateTime();
+            tmpLog.kinhdo = queryScanAditionLog.value(2).toDouble();
+            tmpLog.vido = queryScanAditionLog.value(3).toDouble();
+            tmpLog.vantocGps = queryScanAditionLog.value(4).toDouble();
+            tmpLog.vantocDongho = queryScanAditionLog.value(5).toDouble();
+            tmpLog.lytrinh = queryScanAditionLog.value(6).toInt();
+            tmpLog.huong = queryScanAditionLog.value(7).toInt();
+            tmpLog.trangthaiGps = queryScanAditionLog.value(8).toInt();
+            tmpLog.id = queryScanAditionLog.value(9).toInt();
+            qDebug() << PREFIX << "phuongtienlog" << tmpLog.id;
+
+            // select hanh trinh gan nhat
+            QString sqlScanHanhTrinhGanNhat =
+                    QString(" SELECT hanhtrinh_id, hanhtrinh_bienso, hanhtrinh_thoigian_batdau,  hanhtrinh_thoigian_ketthuc, hanhtrinh_thoigiancapnhat, "
+                            "   hanhtrinh_thoigiantaofile, hanhtrinh_datafile, hanhtrinh_trangthai, "
+                            "   if (ABS(TIME_TO_SEC(TIMEDIFF('%1', hanhtrinh_thoigian_batdau))) > "
+                            "   ABS(TIME_TO_SEC(TIMEDIFF('%1', hanhtrinh_thoigian_ketthuc))), "
+                            "   ABS(TIME_TO_SEC(TIMEDIFF('%1', hanhtrinh_thoigian_ketthuc))), "
+                            "   ABS(TIME_TO_SEC(TIMEDIFF('%1', hanhtrinh_thoigian_batdau)))) diff "
+                            " FROM tbl_hanhtrinh "
+                            " WHERE hanhtrinh_thoigian_batdau < '%2' "
+                            "   AND hanhtrinh_thoigian_batdau > '%3' "
+                            "   AND hanhtrinh_thoigian_ketthuc < '%2' "
+                            "   AND hanhtrinh_thoigian_ketthuc > '%3' "
+                            "   AND hanhtrinh_bienso = '%4' "
+                            " ORDER BY diff ASC LIMIT 1 ")
+                    .arg(tmpLog.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(tmpLog.thoigian.addSecs(1800).toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(tmpLog.thoigian.addSecs(-1800).toString("yyyy-MM-dd hh:mm:ss"))
+                    .arg(tmpBienso);
+            QSqlQuery queryScanHanhTrinhGanNhat;
+
+            if(serverDatabase && serverDatabase->execQuery(sqlScanHanhTrinhGanNhat,queryScanHanhTrinhGanNhat)) {
+                if(queryScanHanhTrinhGanNhat.next()){
+                    QDateTime batdau = queryScanHanhTrinhGanNhat.value(2).toDateTime();
+                    QDateTime ketthuc = queryScanHanhTrinhGanNhat.value(3).toDateTime();
+
+                    // cap nhat lai hanh trinh cho ban ghi
+                    updateHanhTrinhId(tmpBienso, batdau, tmpLog.id);
+
+                    // neu nho hon thoi gian bat dau cap nhat lai thoi gian bat dau
+                    if (batdau.secsTo(tmpLog.thoigian) < 0) {
+                        //-/ update hanh trinh db
+                        QString sqlUpdateHanhTrinh =
+                                QString(" UPDATE  tbl_hanhtrinh "
+                                        " SET  hanhtrinh_thoigian_batdau =  '%1', "
+                                        "   hanhtrinh_kinhdo_batdau = %2, "
+                                        "   hanhtrinh_vido_batdau = %3, "
+                                        "   hanhtrinh_capdo = 0, "
+                                        "   hanhtrinh_trangthai = 1, "
+                                        "   hanhtrinh_thoigiancapnhat = '%4'"
+                                        " WHERE hanhtrinh_bienso =  '%5' "
+                                        "   AND hanhtrinh_thoigian_batdau =  '%6'")
+                                .arg(tmpLog.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
+                                .arg(QString::number(tmpLog.kinhdo,'f',9))
+                                .arg(QString::number(tmpLog.vido,'f',9))
+                                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                                .arg(tmpBienso)
+                                .arg(batdau.toString("yyyy-MM-dd hh:mm:ss"));
+                        if(serverDatabase)
+                            serverDatabase->execQuery(sqlUpdateHanhTrinh);
+
+
+                        //-/ update hanh trinh trong map
+                        if(mapHanhTrinh.contains(tmpBienso)){
+                            if(mapHanhTrinh[tmpBienso].thoigianBatdau.secsTo(batdau) ==0 ){
+                                mapHanhTrinh[tmpBienso].thoigianBatdau = tmpLog.thoigian;
+                            }
+                        }
+                    }
+
+                    // neu lon hon thoi gian ket thuc thi cap nhat lai thoi gian ket thuc
+                    if (ketthuc.secsTo(tmpLog.thoigian) > 0) {
+                        //-/ update hanh trinh db
+                        QString sqlUpdateHanhTrinh =
+                                QString(" UPDATE  tbl_hanhtrinh "
+                                        " SET  hanhtrinh_thoigian_ketthuc =  '%1', "
+                                        "   hanhtrinh_kinhdo_ketthuc = %2, "
+                                        "   hanhtrinh_vido_ketthuc = %3, "
+                                        "   hanhtrinh_capdo = 0, "
+                                        "   hanhtrinh_trangthai = 1, "
+                                        "   hanhtrinh_thoigiancapnhat = '%4'"
+                                        " WHERE hanhtrinh_bienso =  '%5' "
+                                        "   AND hanhtrinh_thoigian_batdau =  '%6'")
+                                .arg(tmpLog.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
+                                .arg(QString::number(tmpLog.kinhdo,'f',9))
+                                .arg(QString::number(tmpLog.vido,'f',9))
+                                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                                .arg(tmpBienso)
+                                .arg(batdau.toString("yyyy-MM-dd hh:mm:ss"));
+                        if(serverDatabase)
+                            serverDatabase->execQuery(sqlUpdateHanhTrinh);
+                    }
+                }
+                else{
+                    // neu qua 30p thi tao hanh trinh moi
+                    QString sqlInsertHanhTrinh =
+                            QString(" INSERT INTO  tbl_hanhtrinh(hanhtrinh_bienso ,  hanhtrinh_thoigian_batdau , "
+                                    "   hanhtrinh_kinhdo_batdau ,  hanhtrinh_vido_batdau , hanhtrinh_thoigian_ketthuc , "
+                                    "   hanhtrinh_kinhdo_ketthuc , hanhtrinh_vido_ketthuc ,  hanhtrinh_capdo , "
+                                    "   hanhtrinh_trangthai, hanhtrinh_tuyenduong_id, hanhtrinh_machuyen ) "
+                                    " VALUES ( '%1',  '%2', %3, %4, '%5', %6, %7, 0, 1, "
+                                    "           (SELECT  phuongtien_tuyenduong FROM `tbl_phuongtien` WHERE phuongtien_bienso = '%1' limit 1), "
+                                    "           (SELECT  phuongtien_machuyen FROM `tbl_phuongtien` WHERE phuongtien_bienso = '%1' limit 1))")
+                            .arg(tmpBienso)
+                            .arg(tmpLog.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
+                            .arg(QString::number(tmpLog.kinhdo,'f',9))
+                            .arg(QString::number(tmpLog.vido,'f',9))
+                            .arg(tmpLog.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
+                            .arg(QString::number(tmpLog.kinhdo,'f',9))
+                            .arg(QString::number(tmpLog.vido,'f',9));
+
+                    if(serverDatabase) serverDatabase->execQuery(sqlInsertHanhTrinh);
+
+                }
+            }
+        }
+
+
+    }
+
+
+
+
+
 }
 
 void VehicleTrackingServer::WriteBuffLog(GsThOldLogRec GsPosLog, QString NameFile){
@@ -307,7 +485,9 @@ void VehicleTrackingServer::ConvertToOldBuff(GsThOldLogRec* Rec,unsigned char Ou
         FirstBlogRec=*Rec;
         OutBuff16[0]=Rec->DateTime.Day;
         OutBuff16[1]=(Rec->DateTime.Month&0x0F)|(Rec->IdTuyen<<4);
-        OutBuff16[2]=(Rec->Rundirection&1);//Need more
+        //        OutBuff16[2]=(Rec->Rundirection&1);//Need more
+        OutBuff16[2]=Rec->IdMacTau<<1|(Rec->Rundirection&1);
+
 
         LyTrinhM=Rec->Km*1000+Rec->m;
         OutBuff16[3]=LyTrinhM>>16;
@@ -365,6 +545,7 @@ bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end
         if (!dir.exists()) {
             dir.mkpath(".");
         }
+        QFile::remove(fileName);
 
 
         if(queryData.size() > 1) {
@@ -422,16 +603,16 @@ bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end
 }
 
 bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
-    qDebug() << "ket thuc hanh trinh" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
+    qDebug() << PREFIX << "ket thuc hanh trinh" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
 
-    QString fileName = QString("%1/%2/data_%1_%3_%4_%5")
+    QString fileName = QString("%1/%2/data_%3_%4_%5")
             .arg(dataPath)
             .arg(key)
             .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyyMMddhhmmss"))
             .arg(v.thoigian.toString("yyyyMMddhhmmss"))
             .arg(QString::number(QDateTime::currentMSecsSinceEpoch()));
 
-    qDebug() << fileName;
+    qDebug() << PREFIX << fileName;
 
     if(writeLog(key, mapHanhTrinh[key].thoigianBatdau, v.thoigian, fileName)) {
         //-/update hanh trinh ve trang thai ket thuc
@@ -442,25 +623,29 @@ bool VehicleTrackingServer::finishJourney(QString key, VehicleLog v){
                         "   hanhtrinh_vido_ketthuc = %3, "
                         "   hanhtrinh_capdo = 0, "
                         "   hanhtrinh_trangthai = 1, "
-                        "   hanhtrinh_datafile = '%4'"
-                        " WHERE hanhtrinh_bienso =  '%5' "
-                        "   AND hanhtrinh_thoigian_batdau =  '%6'")
+                        "   hanhtrinh_datafile = '%4', "
+                        "   hanhtrinh_thoigiancapnhat = '%5', "
+                        "   hanhtrinh_thoigiantaofile = '%6' "
+                        " WHERE hanhtrinh_bienso =  '%7' "
+                        "   AND hanhtrinh_thoigian_batdau =  '%8'")
                 .arg(v.thoigian.toString("yyyy-MM-dd hh:mm:ss"))
                 .arg(QString::number(v.kinhdo,'f',9))
                 .arg(QString::number(v.vido,'f',9))
                 .arg(fileName)
+                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
+                .arg(QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"))
                 .arg(key)
                 .arg(mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss"));
 
         if(serverDatabase && serverDatabase->execQuery(sqlKetThucHanhTrinh)) {
             //-/xoa hanh trinh ra khoi map
             mapHanhTrinh.remove(key);
-            qDebug() << "mapHanhTrinh -> remove:" << key;
+            qDebug() << PREFIX << "mapHanhTrinh -> remove:" << key;
         } else {
             return false;
         }
     } else {
-        qDebug() << "ERROR : can not finish journey" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
+        qDebug() << PREFIX << "ERROR : can not finish journey" << key << mapHanhTrinh[key].thoigianBatdau.toString("yyyy-MM-dd hh:mm:ss");
         return false;
     }
 
@@ -500,7 +685,7 @@ void VehicleTrackingServer::createPartition(QString table){
                             .arg(lstPartitionDate.toString("yyyyMMdd"))
                             .arg(lstPartitionDate.addDays(1).toString("yyyy-MM-dd hh:mm:ss"));
                     if (serverDatabase && serverDatabase->execQuery(addPartition)) {
-                        qDebug() << QString(" Partition added: p%1").arg(lstPartitionDate.toString("yyyyMMdd"));
+                        qDebug() << PREFIX << QString(" Partition added: p%1").arg(lstPartitionDate.toString("yyyyMMdd"));
                     }
                     lstPartitionDate = lstPartitionDate.addDays(1);
                 }
@@ -514,7 +699,7 @@ void VehicleTrackingServer::createPartition(QString table){
 void VehicleTrackingServer::slot_newConnection(){
     QTcpSocket *socket = tcpServer->nextPendingConnection();
     if(socket)
-        qDebug() << "newConnection" << socket->peerAddress().toString();
+        qDebug() << PREFIX << "newConnection" << socket->peerAddress().toString();
     VehicleConnection *vehicleConnection = new VehicleConnection(socket);
     if(vehicleConnection){
         connect(vehicleConnection, SIGNAL(finished()), this, SLOT(slot_closeConnection()));
@@ -524,11 +709,11 @@ void VehicleTrackingServer::slot_newConnection(){
 
 }
 void VehicleTrackingServer::slot_closeConnection(){
-    qDebug() << "VehicleTrackingServer::slot_closeConnection()";
+    qDebug() << PREFIX << "VehicleTrackingServer::slot_closeConnection()";
     VehicleConnection *vehicleConnection = qobject_cast<VehicleConnection *>(sender());
     for(int i=connectionList.size()-1;i>=0;i--){
         if(vehicleConnection == connectionList[i]){
-            qDebug() << "closeConnection" << i << connectionList.size();
+            qDebug() << PREFIX << "closeConnection" << i << connectionList.size();
             connectionList.removeAt(i);
             delete vehicleConnection;
         }

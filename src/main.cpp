@@ -28,7 +28,6 @@ int main(int argc, char *argv[])
         qInstallMsgHandler(messageHandler);
     }
 
-    //VehicleTrackingServer vehicleTrackingServer(QDateTime::fromString(QDateTime::currentDateTime().toString("yyyy-MM-dd"), "yyyy-MM-dd").addDays(-60), 0, 1235);
     VehicleTrackingServer vehicleTrackingServer;
 
 

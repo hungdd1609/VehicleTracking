@@ -5,10 +5,12 @@
 #include <QTcpServer>
 #include <QTimer>
 #include "vehicleconnection.h"
+#include <QFile>
 #include "cprtfcdatabase.h"
 
 struct VehicleLog{
     //QString bienso;
+    int id;
     QDateTime thoigian;
     double kinhdo;
     double vido;
@@ -16,7 +18,7 @@ struct VehicleLog{
     double vantocDongho;
     int lytrinh;
     int trangthaiGps;
-    int huong;
+    int huong;    
 };
 //------------------------------------------------------------------------
 struct HanhTrinh{
@@ -79,6 +81,10 @@ private:
     bool writeLog(QString key, QDateTime begin, QDateTime end, QString fileName);
     void ConvertToOldBuff(GsThOldLogRec* Rec,unsigned char OutBuff16[],unsigned char Buff6[]);
     void WriteBuffLog(GsThOldLogRec GsPosLog, QString NameFile);
+
+    void scanNewLog();
+    void splitJourneyOnline();
+    void updateHanhTrinhId(QString key, QDateTime batdau, int phuongtienlogid);
 
 signals:
 
