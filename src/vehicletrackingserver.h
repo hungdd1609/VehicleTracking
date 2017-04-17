@@ -19,6 +19,7 @@ struct VehicleLog{
     int lytrinh;
     int trangthaiGps;
     int huong;    
+    QString machuyen;
 };
 //------------------------------------------------------------------------
 struct HanhTrinh{
@@ -28,6 +29,7 @@ struct HanhTrinh{
     QDateTime thoigianKetthuc;
     double kinhdoKetthuc;
     double vidoKetthuc;
+    QString machuyen;
 };
 //------------------------------------------------------------------------
 typedef struct GsThOldLogRec{

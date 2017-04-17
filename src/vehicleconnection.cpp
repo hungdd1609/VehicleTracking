@@ -269,7 +269,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                      << "num of sat" << NumOfSat;
 
             //insert train's data to tbl_phuongtienlog
-            if(Insert2PhuongTienLog(gpsTime, longitude, latitude, GpsStates, cData, "tbl_phuongtienlog")) {
+            if(Insert2PhuongTienLog(vehicleLabel, gpsTime, longitude, latitude, GpsStates, cData, "tbl_phuongtienlog")) {
                 qDebug() << plateNumber << QString("%1 is inserted to tbl_phuongtienlog").arg(vehicleLabel);
             }
 
@@ -604,6 +604,14 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 TrainRecStr.sprintf("Train:%d ->%d/%d/%d %d:%d:%d Lat %ld Long %ld Km %d M%d Height%d Gps%d VLim:%d Heading:%d",TraiRevRec.TrainLabel,TraiRevRec.TimeNow1s.Day,TraiRevRec.TimeNow1s.Month,TraiRevRec.TimeNow1s.Year,TraiRevRec.TimeNow1s.Hour,TraiRevRec.TimeNow1s.Min,TraiRevRec.TimeNow1s.Sec,TraiRevRec.Lat1s,TraiRevRec.Long1s,TraiRevRec.KmM/1000,TraiRevRec.KmM%1000,TraiRevRec.Height,TraiRevRec.GpsStatesNumOfSat,TraiRevRec.LimitSpeed,TraiRevRec.Heading);
                 qDebug() << plateNumber << TrainRecStr;
 
+                if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
+                    qDebug() << plateNumber << "TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255";
+                    break;
+                }
+                else{
+                    vehicleLabel = QString(name_way_mac[TraiRevRec.TrainName][TraiRevRec.TrainLabel]).trimmed();
+                }
+
                 //insert train's data to tbl_phuongtienlog
                 longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s),'f',9);
                 latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s),'f',9);
@@ -611,7 +619,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
                 gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
 
-                if(Insert2PhuongTienLog(gpsTime, longitude, latitude, GpsStates, cData, "tbl_phuongtienlog2")) {
+                if(Insert2PhuongTienLog(vehicleLabel, gpsTime, longitude, latitude, GpsStates, cData, "tbl_phuongtienlog2")) {
                     qDebug() << plateNumber << QString("%1 is inserted to tbl_phuongtienlog").arg(vehicleLabel);
                 }
                 break;
@@ -705,7 +713,7 @@ bool VehicleConnection::Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabe
 }
 
 //---------------------------------------------------------
-bool VehicleConnection::Insert2PhuongTienLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table){
+bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table){
     QString sqlInsertTrainLog = QString("INSERT INTO "+ table + " ("
                                         "phuongtienlog_bienso, "
                                         "phuongtienlog_thoigian, "
@@ -720,8 +728,9 @@ bool VehicleConnection::Insert2PhuongTienLog(QDateTime gpsTime, QString longitud
                                         "phuongtienlog_lytrinh, "
                                         "phuongtienlog_huong, "
                                         "phuongtienlog_trangthaigps, "
-                                        "phuongtienlog_extdata ) "
-                                        "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14') ")
+                                        "phuongtienlog_extdata, "
+                                        "phuongtienlog_machuyen ) "
+                                        "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14', '%15') ")
             .arg(plateNumber)
             .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(longitude)
@@ -735,7 +744,8 @@ bool VehicleConnection::Insert2PhuongTienLog(QDateTime gpsTime, QString longitud
             .arg(TraiRevRec.KmM)
             .arg(QString::number(TraiRevRec.Heading)) //huong
             .arg(GpsStates)
-            .arg(cData);
+            .arg(cData)
+            .arg(machuyen);
 
     if(connectionDatabase->execQuery(sqlInsertTrainLog)){
         return true;

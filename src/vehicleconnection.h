@@ -210,7 +210,7 @@ private:
     bool isFirstTime;
     QString logPath;
 
-    bool Insert2PhuongTienLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table);
+    bool Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table);
     bool Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabel, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
     bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
     bool UpdateCommand(int id, QDateTime sent, int status);
