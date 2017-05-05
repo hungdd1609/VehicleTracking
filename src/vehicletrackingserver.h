@@ -86,6 +86,7 @@ private:
 
     void scanNewLog();
     void splitJourneyOnline();
+    void processHistoryLog();
     void updateHanhTrinhId(QString key, QDateTime batdau, int phuongtienlogid);
 
 signals:

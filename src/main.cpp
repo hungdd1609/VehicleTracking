@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
 {    
     QCoreApplication a(argc, argv);
     qDebug() << "sizeof(TrainAbsRec)" <<sizeof(TrainAbsRec);
+    qDebug() << "sizeof(long)" <<sizeof(long);
     //-/ cai dat logger
     QDir logDir(qApp->applicationDirPath()+"/log");
     logDir.mkpath("./");

@@ -23,12 +23,12 @@ railway const name_way_flash[max_name_way] =
 railway const name_way[max_name_way] = {"TH-NH","HN-LC","HN-HP", "HN-DD", "LT-YB", "YV-HL", "YB-XG"};
 railway const name_way_mac[max_name_way][max_name_mac] = { // tên mac tàu
                                                            {" SE1 " , " SE3 " , " SE5 " , " SE7 " , " TN1 " , " SE2 " , " SE4 " , " SE6 " , " SE8 " , " TN2 " , " NA1 " , " NA3 " , " VD31"  , " DH41"  , " NA2 " , " NA4 " , " VD32"  , " DH42"  , "THbn1"  , "THbn2"   , " TH1 " , " TH2 ",  " THb1"  , " THb2", "     ", "     ", "     ", "     "},// thong nhat
-                                                           {" SP1 " , " SP3 " , " SP5 " , " LC1 " , " LC3 " , " LC5 " , " LC7 " , " YB1 " , " SP2 " , " SP4 " , " SP6 " , " LC2 " , " LC4 "  , " LC6 "  , " LC8 " , " LC10" , " LC9 "  , " YB2 "  , " SP7 "  , " SP8 "   , " TH1 " , " TH2 ",  " THb1"  , " THb2", "     ", "     ", "     ", "     "},
+                                                           {" SP1 " , " SP3 " , " SP5 " , " LC1 " , " LC3 " , " LC5 " , " LC7 " , " YB1 " , " SP2 " , " SP4 " , " SP6 " , " LC2 " , " LC4 "  , " LC6 "  , " LC8 " , " LC10" , " LC9 "  , " YB2 "  , " SP7 "  , " SP8 "   , " TH1 " , " TH2 ",  " THb1"  , " THb2", " THd1", " THd2", "     ", "     "},
                                                            {" HP1 " , " LP3 " , " LP5 " , " LP7 " , " HP2 " , " LP2 " , " LP6 " , " LP8 " , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1"  , " THd2"  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" M1  " , " M3  " , " DD3 " , " M2  " , " M4  " , " DD4 " , " TH1 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" TH1 " , " TH2 " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                            {" R157" , " HLr1" , " R158" , " HLr2" , " TH1 " , " TH2 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     " , "     "  , "     "  , "     " ,"     "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
-                                                           {" TH1 " , " TH2 " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " , "    "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
+                                                           {" TH1 " , " TH2 " , " THb1" , " THb2" , " THd1" , " THd2" , "     " , "     " , "     " , "     " , "     " , "     " , "     "  , "     "  , "     " , "    "  , "     "  , "     "  , "     "  , "     "   , "     " , "     " , "     "  , "     ", "     ", "     ", "     ", "     "},
                                                          };
 
 VehicleConnection::VehicleConnection()
@@ -257,7 +257,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
 
             qDebug() << plateNumber << "TrainData" << gpsTime.toString("yyyy-MM-dd hh:mm:ss")
                      << "Train id" << plateNumber
-                     << "label" << vehicleLabel
+                     << "label" << vehicleLabel << TraiRevRec.TrainName << TraiRevRec.TrainLabel
                      << "KmM" << TraiRevRec.KmM
                      << "Heading" << TraiRevRec.Heading
                      << "Latitude" << TraiRevRec.Lat1s
