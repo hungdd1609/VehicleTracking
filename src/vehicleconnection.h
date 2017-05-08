@@ -13,6 +13,7 @@
 #define SYS7B_REV_BUFF_SIZE 10240
 #define TIME_SEND_DATA_SERVER 20
 #define MAXDATAPACKSIZE 256
+#define TIME_SEND_DATA_SERVER 30
 //#define CMD_DEBUG 0
 //#define CMD_DEV_EVENT 1
 //#define CMD_BIRDIR_ACK 2
@@ -52,15 +53,24 @@ struct GpsMng{
     short Height; //cao do
 };
 //------------------------------------------------------------------------------
-struct UserInfor{
+//struct UserInfor{
+//    char uid[24];
+//    char Giaypheplaixe[16];
+//    char Hoten[44];
+//    char Thongtinkhac[10];
+//    char States;
+//    char Event;
+//    int TimerDriver; // thoi gian lai xe lien tuc
+//    GpsMng GPS;
+//};
+struct User{ // dang nhap+ dang xuat
     char uid[24];
-    char Giaypheplaixe[16];
+    char Giaypheplaixe[17];
     char Hoten[44];
-    char Thongtinkhac[10];
     char States;
     char Event;
     int TimerDriver; // thoi gian lai xe lien tuc
-    GpsInt GPS;
+    GpsMng GPS;
 };
 //------------------------------------------------------------------------------
 struct DevInfor{
@@ -89,6 +99,10 @@ struct TrainAbsRec{
     unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
     unsigned char WheelSpeed[TIME_SEND_DATA_SERVER];
+};
+struct CarAbsRec{
+    GpsMng Gps1sStart;
+    unsigned char Speed[TIME_SEND_DATA_SERVER];
 };
 //------------------------------------------------------------------------------
 enum LogRecType{
@@ -134,7 +148,6 @@ typedef struct ReadFileMng{
     QDateTime EndRead;
     int zeroCount;
 }ReadFileMng;
-
 //-------------------------------------------------------------------------------
 
 enum CPR_CMD{
@@ -196,7 +209,7 @@ private:
     unsigned short Sys7bREvIdx,lr,filelenpos;
     Event EventSpeed;
     TrainAbsRec TraiRevRec;
-    UserInfor Usr;
+    User Usr;
     DevInfor HardDev;
 
     ReadFileMng readFileMng;

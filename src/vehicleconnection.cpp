@@ -195,12 +195,12 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         case REC_USER_SIGNIN://Ban ghi su kien nguoi dang nhap
             memcpy(&Usr,Pck,l);
             memcpy(&Usr,Pck+1,l);
-            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.DateTime.Day,Usr.GPS.DateTime.Month,Usr.GPS.DateTime.Year,Usr.GPS.DateTime.Hour,Usr.GPS.DateTime.Min,Usr.GPS.DateTime.Sec);
+            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
             //                              qDebug() << plateNumber <<eTime+"->"+QString(Usr.Hoten)+" "+QString(Usr.Giaypheplaixe)+" Singin");
             break;
         case REC_USER_SIGNOUT://Ban ghi su kien nguoi dang xuat
             memcpy(&Usr,Pck+1,l);
-            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.DateTime.Day,Usr.GPS.DateTime.Month,Usr.GPS.DateTime.Year,Usr.GPS.DateTime.Hour,Usr.GPS.DateTime.Min,Usr.GPS.DateTime.Sec);
+            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
             break;
         case REC_USER_OVERTIME://Qua thoi gian
             qDebug() << plateNumber <<"Qua thoi gian";
@@ -571,12 +571,12 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             case REC_USER_SIGNIN://Ban ghi su kien nguoi dang nhap
                 memcpy(&Usr,Pck,l);
                 memcpy(&Usr,Pck+1,l);
-                eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.DateTime.Day,Usr.GPS.DateTime.Month,Usr.GPS.DateTime.Year,Usr.GPS.DateTime.Hour,Usr.GPS.DateTime.Min,Usr.GPS.DateTime.Sec);
+                eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
                 qDebug() << eTime+"->"+ QString(Usr.Hoten)+" "+QString(Usr.Giaypheplaixe)+" Singin";
                 break;
             case REC_USER_SIGNOUT://Ban ghi su kien nguoi dang xuat
                 memcpy(&Usr,Pck+1,l);
-                eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.DateTime.Day,Usr.GPS.DateTime.Month,Usr.GPS.DateTime.Year,Usr.GPS.DateTime.Hour,Usr.GPS.DateTime.Min,Usr.GPS.DateTime.Sec);
+                eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
                 qDebug() << eTime+"->"+QString(Usr.Hoten)+" "+QString(Usr.Giaypheplaixe)+" Singout";
                 break;
             case REC_USER_OVERTIME://Qua thoi gian
