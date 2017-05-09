@@ -212,6 +212,7 @@ private:
     unsigned short Sys7bREvIdx,lr,filelenpos;
     Event EventSpeed;
     TrainAbsRec TraiRevRec;
+    CarAbsRec CarRevRec;
     User Usr;
     DevInfor HardDev;
 

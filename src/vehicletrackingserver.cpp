@@ -613,7 +613,7 @@ bool VehicleTrackingServer::writeLog(QString key, QDateTime begin, QDateTime end
 
                 int tmpKmM = TraiRevRec.KmM;
 
-                for(int i = 0; i < TIME_SEND_DATA_SERVER; i++){
+                for(int i = 0; i < TIME_TRAIN_SEND_DATA_SERVER; i++){
                     int s = i>0?TraiRevRec.SpeedBuff[i-1]/3.6:0;
                     tmpKmM += s;
 

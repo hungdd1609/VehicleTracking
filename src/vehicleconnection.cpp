@@ -721,7 +721,7 @@ bool VehicleConnection::Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabe
             .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc dong co
             .arg(TraiRevRec.LimitSpeed) //gioi han toc do
             .arg(TraiRevRec.KmM) //ly trinh
-            .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1])) //ap suat
+            .arg(QString::number(TraiRevRec.PresBuff[TIME_TRAIN_SEND_DATA_SERVER - 1])) //ap suat
             .arg(QString::number(TraiRevRec.Heading)) //huong
             .arg(GpsStates)
             .arg(cData);
@@ -760,7 +760,7 @@ bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime
             .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc dong ho
             .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2))
             .arg(TraiRevRec.LimitSpeed)
-            .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
+            .arg(QString::number(TraiRevRec.PresBuff[TIME_TRAIN_SEND_DATA_SERVER - 1]))
             .arg(TraiRevRec.KmM)
             .arg(QString::number(TraiRevRec.Heading)) //huong
             .arg(GpsStates)
