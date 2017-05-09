@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
     qDebug() << "sizeof(TrainAbsRec)" <<sizeof(TrainAbsRec);
     qDebug() << "sizeof(long)" <<sizeof(long);
+    qDebug() << QString::number((double)141/10,'f',2);
     //-/ cai dat logger
     QDir logDir(qApp->applicationDirPath()+"/log");
     logDir.mkpath("./");

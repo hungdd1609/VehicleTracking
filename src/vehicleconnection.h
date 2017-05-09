@@ -42,7 +42,7 @@ struct SDateTime{
 struct GpsInt{
     unsigned int Lat;
     unsigned int Long;
-    unsigned char Speed;
+    short Speed;
     SDateTime DateTime;
 };
 //------------------------------------------------------------------------------
@@ -94,11 +94,13 @@ struct TrainAbsRec{
     unsigned int Long1s;
     unsigned int Lat1s;
     SDateTime TimeNow1s;
+    short GpsSpeed1s;
+    short DtSpeed1s;
     short Height;           // do cao
-    short Heading; // Dregree
-    unsigned char SpeedBuff[TIME_SEND_DATA_SERVER];
+    short Heading;/// Dregree
+    signed char SpeedBuff[TIME_SEND_DATA_SERVER-1];
     unsigned char PresBuff[TIME_SEND_DATA_SERVER];
-    unsigned char WheelSpeed[TIME_SEND_DATA_SERVER];
+    signed char WheelSpeed[TIME_SEND_DATA_SERVER-1];// tốc độ đồng trục
 };
 struct CarAbsRec{
     GpsMng Gps1sStart;
@@ -148,6 +150,7 @@ typedef struct ReadFileMng{
     QDateTime EndRead;
     int zeroCount;
 }ReadFileMng;
+
 //-------------------------------------------------------------------------------
 
 enum CPR_CMD{

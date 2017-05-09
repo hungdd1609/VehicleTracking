@@ -29,3 +29,4 @@ unix {
     MOC_DIR = build/moc
 }
 DESTDIR = ./bin/
+

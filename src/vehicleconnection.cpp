@@ -178,10 +178,12 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     TotalRevPCk++;
 
     switch(Pck[len-2]){
-    case CMD_DEBUG:
+    case CMD_DEBUG:{
         qDebug() << plateNumber <<"CMD_DEBUG";
         break;
+    }
     case CMD_DEV_EVENT:
+        qDebug() << plateNumber <<"CMD_DEV_EVENT";
         SendPck(PBuff,1,CMD_BIRDIR_ACK,Pck[len-3]);
         l=DecodeDataPack(Pck,len-3);
         current = QDateTime::currentDateTime();
@@ -219,6 +221,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_TRAIN:
         {
+            qDebug() << plateNumber << "REC_TRAIN";
             if(plateNumber.isEmpty() || plateNumber.isEmpty()){
                 qDebug() << plateNumber << "break! plate number is empty";
                 break;
@@ -232,10 +235,12 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             }
 
             //get train's data
+            qDebug() << plateNumber << "REC_TRAIN" << "before parse";
             memcpy(&TraiRevRec,Pck+1,sizeof(TrainAbsRec));
+            qDebug() << plateNumber << "REC_TRAIN" << "after parse";
             QByteArray trainRev((char*)Pck+1,sizeof(TrainAbsRec));
             QString cData = trainRev.toHex();
-
+            qDebug() << plateNumber << "REC_TRAIN" << "trainRev.toHex()";
 
             longitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Long1s),'f',9);
             latitude = QString::number(ConvertGPSdegreeToGPSDecimal(TraiRevRec.Lat1s),'f',9);
@@ -243,10 +248,18 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             gpsTime.setDate(QDate(TraiRevRec.TimeNow1s.Year + 2000, TraiRevRec.TimeNow1s.Month, TraiRevRec.TimeNow1s.Day));
             gpsTime.setTime(QTime(TraiRevRec.TimeNow1s.Hour, TraiRevRec.TimeNow1s.Min, TraiRevRec.TimeNow1s.Sec, 0));
 
+            qDebug() << plateNumber << "REC_TRAIN" << "gpsTime";
+
             GpsStates = TraiRevRec.GpsStatesNumOfSat>>7;
+
+            qDebug() << plateNumber << "REC_TRAIN" << "NumOfSat";
             NumOfSat = TraiRevRec.GpsStatesNumOfSat&0x7F;
 
+            qDebug() << plateNumber << "REC_TRAIN" << "GpsStatesNumOfSat";
+
             // truong hop chua bat may se gui ve 255
+            qDebug() << plateNumber << "REC_TRAIN" << TraiRevRec.TrainName << TraiRevRec.TrainLabel;
+
             if(TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255){
                 qDebug() << plateNumber << "TraiRevRec.TrainName == 255 || TraiRevRec.TrainLabel == 255";
                 break;
@@ -265,6 +278,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                      << "train label" <<TraiRevRec.TrainLabel
                      << "train name" << TraiRevRec.TrainName
                      << "train height" << TraiRevRec.Height
+                     << "WheelSpeed" << TraiRevRec.DtSpeed1s
+                     << "gpsSpeed" << TraiRevRec.GpsSpeed1s
                      << "gps State" << GpsStates
                      << "num of sat" << NumOfSat;
 
@@ -371,14 +386,16 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         break;
     case CMD_BIRDIR_ACK:
         break;
-    case CMD_SYS_GET:
+    case CMD_SYS_GET:{
         qDebug() << plateNumber <<"CMD_SYS_GET";
         l=DecodeDataPack(Pck,len-3);
         memcpy(&HardDev,Pck,sizeof(DevInfor));
         qDebug() << plateNumber << QString(HardDev.NameDevice) + " " + QString(HardDev.Type);
         plateNumber = QString(HardDev.NameDevice).trimmed();
+        qDebug() << "plateNumber" << plateNumber <<"CMD_SYS_GET";
         break;
-    case CMD_FILE_MNG:
+    }
+    case CMD_FILE_MNG:{
         qDebug() << plateNumber << "CMD_FILE_MNG RETURN";
         l=DecodeDataPack(Pck,len-3);
         switch(Pck[len-3]&0x3F){
@@ -520,7 +537,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                     QSqlQuery queryCheck;
                     if(connectionDatabase && connectionDatabase->execQuery(sqlcheck,queryCheck)) {
 
-                         qDebug() << plateNumber << "queryCheck.size()" << queryCheck.size();
+                        qDebug() << plateNumber << "queryCheck.size()" << queryCheck.size();
                         if(queryCheck.size() == 0) {
                             QString sqlInsertFileLog =
                                     QString(" INSERT INTO tbl_filelog(filelog_bienso, filelog_thoigian, filelog_ten) "
@@ -556,6 +573,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         }
         break;
+    }
     case CMD_L7B_MNG:
         l=DecodeDataPack(Pck,len-3);
         switch(Pck[len-3]&0x3F){
@@ -695,10 +713,10 @@ bool VehicleConnection::Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabe
             .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(longitude)
             .arg(latitude)
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc gps
-            .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1])) //van toc banh xe
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong ho
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong co
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc gps
+            .arg(QString::number((double)TraiRevRec.DtSpeed1s/10,'f',2)) //van toc banh xe
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc dong ho
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc dong co
             .arg(TraiRevRec.LimitSpeed) //gioi han toc do
             .arg(TraiRevRec.KmM) //ly trinh
             .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1])) //ap suat
@@ -715,30 +733,30 @@ bool VehicleConnection::Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabe
 //---------------------------------------------------------
 bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table){
     QString sqlInsertTrainLog = QString("INSERT INTO "+ table + " ("
-                                        "phuongtienlog_bienso, "
-                                        "phuongtienlog_thoigian, "
-                                        "phuongtienlog_kinhdo, "
-                                        "phuongtienlog_vido, "
-                                        "phuongtienlog_vantoc_gps, "
-                                        "phuongtienlog_vantoc_banhxe, "
-                                        "phuongtienlog_vantoc_dongho, "
-                                        "phuongtienlog_vantoc_dongco, "
-                                        "phuongtienlog_hanchetocdo, "
-                                        "phuongtienlog_apsuat, "
-                                        "phuongtienlog_lytrinh, "
-                                        "phuongtienlog_huong, "
-                                        "phuongtienlog_trangthaigps, "
-                                        "phuongtienlog_extdata, "
-                                        "phuongtienlog_machuyen ) "
-                                        "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14', '%15') ")
+                                                                "phuongtienlog_bienso, "
+                                                                "phuongtienlog_thoigian, "
+                                                                "phuongtienlog_kinhdo, "
+                                                                "phuongtienlog_vido, "
+                                                                "phuongtienlog_vantoc_gps, "
+                                                                "phuongtienlog_vantoc_banhxe, "
+                                                                "phuongtienlog_vantoc_dongho, "
+                                                                "phuongtienlog_vantoc_dongco, "
+                                                                "phuongtienlog_hanchetocdo, "
+                                                                "phuongtienlog_apsuat, "
+                                                                "phuongtienlog_lytrinh, "
+                                                                "phuongtienlog_huong, "
+                                                                "phuongtienlog_trangthaigps, "
+                                                                "phuongtienlog_extdata, "
+                                                                "phuongtienlog_machuyen ) "
+                                                                "VALUES ('%1', '%2', %3, %4, %5, %6, %7, %8, %9, %10, %11, %12, %13, '%14', '%15') ")
             .arg(plateNumber)
             .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(longitude)
             .arg(latitude)
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc gps
-            .arg(QString::number(TraiRevRec.WheelSpeed[TIME_SEND_DATA_SERVER - 1]))
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1])) //van toc dong ho
-            .arg(QString::number(TraiRevRec.SpeedBuff[TIME_SEND_DATA_SERVER - 1]))
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc gps
+            .arg(QString::number((double)TraiRevRec.DtSpeed1s/10,'f',2))
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2)) //van toc dong ho
+            .arg(QString::number((double)TraiRevRec.GpsSpeed1s/10,'f',2))
             .arg(TraiRevRec.LimitSpeed)
             .arg(QString::number(TraiRevRec.PresBuff[TIME_SEND_DATA_SERVER - 1]))
             .arg(TraiRevRec.KmM)
@@ -936,6 +954,13 @@ void VehicleConnection::slot_connectionTimer_timeout(){
             }
         }
     }
+
+    //-/scan restart command
+    if(!plateNumber.isNull() && !plateNumber.isEmpty()) {
+
+    }
+
+
 }
 
 void VehicleConnection::slot_readyRead(){
@@ -1129,7 +1154,6 @@ void VehicleConnection::run()
     connect(connectionTimer, SIGNAL(timeout()), this, SLOT(slot_connectionTimer_timeout()));
     connectionTimer->start(30000);
 
-    //hoi ten sau 15p
     requestInfoTimer = new QTimer(this);
     connect(requestInfoTimer, SIGNAL(timeout()), this, SLOT(slot_requestInfoTimer()));
     requestInfoTimer->start(10000);
