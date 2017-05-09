@@ -11,9 +11,9 @@
 #pragma pack(4)     /* set alignment to 1 byte boundary */
 
 #define SYS7B_REV_BUFF_SIZE 10240
-#define TIME_SEND_DATA_SERVER 20
+#define TIME_TRAIN_SEND_DATA_SERVER 20
 #define MAXDATAPACKSIZE 256
-#define TIME_SEND_DATA_SERVER 30
+#define TIME_CAR_SEND_DATA_SERVER 30
 //#define CMD_DEBUG 0
 //#define CMD_DEV_EVENT 1
 //#define CMD_BIRDIR_ACK 2
@@ -98,13 +98,13 @@ struct TrainAbsRec{
     short DtSpeed1s;
     short Height;           // do cao
     short Heading;/// Dregree
-    signed char SpeedBuff[TIME_SEND_DATA_SERVER-1];
-    unsigned char PresBuff[TIME_SEND_DATA_SERVER];
-    signed char WheelSpeed[TIME_SEND_DATA_SERVER-1];// tốc độ đồng trục
+    signed char SpeedBuff[TIME_TRAIN_SEND_DATA_SERVER-1];
+    unsigned char PresBuff[TIME_TRAIN_SEND_DATA_SERVER];
+    signed char WheelSpeed[TIME_TRAIN_SEND_DATA_SERVER-1];// tốc độ đồng trục
 };
 struct CarAbsRec{
     GpsMng Gps1sStart;
-    unsigned char Speed[TIME_SEND_DATA_SERVER];
+    unsigned char Speed[TIME_CAR_SEND_DATA_SERVER];
 };
 //------------------------------------------------------------------------------
 enum LogRecType{

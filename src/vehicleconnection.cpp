@@ -192,7 +192,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             qDebug() << plateNumber <<"Ban ghi tuyet doi";
             break;
         case REC_GPS_DIF://Ban ghi GPS tuong doi
+            memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
             qDebug() << plateNumber <<"Ban ghi tuong doi";
+            qDebug() << CarRevRec.Gps1sStart.Gps.Lat << "lat";
             break;
         case REC_USER_SIGNIN://Ban ghi su kien nguoi dang nhap
             memcpy(&Usr,Pck,l);
