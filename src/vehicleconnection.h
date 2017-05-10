@@ -51,6 +51,7 @@ struct GpsMng{
     unsigned char GpsStates;// trang thai gps
     unsigned char NumOfSat;//so ve tinh
     short Height; //cao do
+    short Heading;
 };
 //------------------------------------------------------------------------------
 //struct UserInfor{
@@ -229,6 +230,9 @@ private:
 
     bool Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table);
     bool Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabel, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
+    bool InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData);
+    bool InsertCarPhuongTien(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
+    bool InsertLaixe();
     bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
     bool UpdateCommand(int id, QDateTime sent, int status);
     void GetListFileLogBytime(QDateTime Start,QDateTime End,QString Filter);

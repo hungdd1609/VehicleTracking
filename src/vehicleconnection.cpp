@@ -189,22 +189,98 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
         current = QDateTime::currentDateTime();
         switch(Pck[0]&0x3F){
         case REC_GPS_ABS://Ban ghi Gps tuyet doi
-            qDebug() << plateNumber <<"Ban ghi tuyet doi";
+            qDebug() << plateNumber <<"---- BAN GHI TUYET DOI ----";
             break;
-        case REC_GPS_DIF://Ban ghi GPS tuong doi
+        case REC_GPS_DIF:
+        {
+            if(plateNumber.isEmpty() || plateNumber.isEmpty()){
+                qDebug() << plateNumber << "break! plate number is empty";
+                break;
+            }
+            //Ban ghi GPS tuong doi
             memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
             qDebug() << plateNumber <<"Ban ghi tuong doi";
-            qDebug() << CarRevRec.Gps1sStart.Gps.Lat << "lat";
+            qDebug() << "lat: " << CarRevRec.Gps1sStart.Gps.Lat << " | long: " << CarRevRec.Gps1sStart.Gps.Long;
+            qDebug() << "Time "<< CarRevRec.Gps1sStart.Gps.DateTime.Hour
+                     << ":" << CarRevRec.Gps1sStart.Gps.DateTime.Min
+                     << ":" << CarRevRec.Gps1sStart.Gps.DateTime.Sec
+                     << " " << CarRevRec.Gps1sStart.Gps.DateTime.Day
+                     << "/" << CarRevRec.Gps1sStart.Gps.DateTime.Month
+                     << "/" << CarRevRec.Gps1sStart.Gps.DateTime.Year;
+            qDebug() << "speed" << CarRevRec.Gps1sStart.Gps.Speed;
+            qDebug() << "gps states" <<CarRevRec.Gps1sStart.GpsStates;
+            QString speed;
+            for(int i =0; i < TIME_CAR_SEND_DATA_SERVER; i++){
+                speed+= QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER - 1]) + " ";
+            }
+            qDebug() << speed;
+
+            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+
+            GpsStates = CarRevRec.Gps1sStart.GpsStates == 65 ? 1:0;
+            QByteArray carRev((char*)Pck+1,sizeof(CarAbsRec));
+            QString data = carRev.toHex();
+            //insert car's data to tbl_phuongtienlog
+            if(InsertCarLog(gpsTime, longitude, latitude, GpsStates, data)) {
+                qDebug() << plateNumber << QString("%1 is inserted to tbl_phuongtienlog").arg(vehicleLabel);
+            }
+
+            QString sqlScanDevice = QString("SELECT * FROM tbl_phuongtien WHERE phuongtien_bienso = '%1'").arg(plateNumber);
+            QSqlQuery query;
+            connectionDatabase->execQuery(query, sqlScanDevice);
+            if (query.next()) {
+                lastTime = query.value(9).toDateTime();
+            }
+            if(lastTime.secsTo(gpsTime) < 0
+                    || !(lastTime.secsTo(current) > PERIOD_TIME)
+                    || lastTime.secsTo(current) < 0){
+                qDebug() << plateNumber << "thoi gian khong hop le";
+                break;
+            } else if(InsertCarPhuongTien(gpsTime, longitude, latitude, GpsStates, data)){
+                qDebug() << plateNumber << QString("%1 is inserted to tbl_phuongtien").arg(vehicleLabel);
+            }
             break;
-        case REC_USER_SIGNIN://Ban ghi su kien nguoi dang nhap
-            memcpy(&Usr,Pck,l);
-            memcpy(&Usr,Pck+1,l);
-            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
-            //                              qDebug() << plateNumber <<eTime+"->"+QString(Usr.Hoten)+" "+QString(Usr.Giaypheplaixe)+" Singin");
+        }
+        case REC_USER_SIGNIN:
+        {
+            //Ban ghi su kien nguoi dang nhap
+            qDebug() << "---- USER DANG NHAP ----";
+            memcpy(&Usr,Pck+1,sizeof(User));
+            qDebug() << "time driver " << Usr.TimerDriver <<" minutes";
+            qDebug() <<  "uid " << Usr.uid;
+            qDebug() << "event " << Usr.Event;
+            qDebug() << "GPLX " << Usr.Giaypheplaixe;
+            qDebug() << "lat " << Usr.GPS.Gps.Lat << "long " << Usr.GPS.Gps.Long;
+            qDebug() << "Time "<< Usr.GPS.Gps.DateTime.Hour
+                     << ":" << Usr.GPS.Gps.DateTime.Min
+                     << ":" << Usr.GPS.Gps.DateTime.Sec
+                     << " " << Usr.GPS.Gps.DateTime.Day
+                     << "/" << Usr.GPS.Gps.DateTime.Month
+                     << "/" << Usr.GPS.Gps.DateTime.Year;
+            qDebug() << "ho ten" << Usr.Hoten;
+            qDebug() << "states" << Usr.States;
             break;
+        }
         case REC_USER_SIGNOUT://Ban ghi su kien nguoi dang xuat
+            qDebug() << "-----USER DANG XUAT-----";
             memcpy(&Usr,Pck+1,l);
-            eTime.sprintf("%d/%d/%d %d:%d:%d",Usr.GPS.Gps.DateTime.Day,Usr.GPS.Gps.DateTime.Month,Usr.GPS.Gps.DateTime.Year,Usr.GPS.Gps.DateTime.Hour,Usr.GPS.Gps.DateTime.Min,Usr.GPS.Gps.DateTime.Sec);
+            qDebug() << "time driver " << Usr.TimerDriver;
+            qDebug() <<  "uid " << Usr.uid;
+            qDebug() << "event " << Usr.Event;
+            qDebug() << "GPLX " << Usr.Giaypheplaixe;
+            qDebug() << "lat " << Usr.GPS.Gps.Lat << "long " << Usr.GPS.Gps.Long;
+            qDebug() << "Time "<< Usr.GPS.Gps.DateTime.Hour
+                     << ":" << Usr.GPS.Gps.DateTime.Min
+                     << ":" << Usr.GPS.Gps.DateTime.Sec
+                     << " " << Usr.GPS.Gps.DateTime.Day
+                     << "/" << Usr.GPS.Gps.DateTime.Month
+                     << "/" << Usr.GPS.Gps.DateTime.Year;
+            qDebug() << "ho ten" << Usr.Hoten;
+            qDebug() << "states" << Usr.States;
             break;
         case REC_USER_OVERTIME://Qua thoi gian
             qDebug() << plateNumber <<"Qua thoi gian";
@@ -732,7 +808,54 @@ bool VehicleConnection::Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabe
     return false;
 }
 
-//---------------------------------------------------------
+bool VehicleConnection::InsertCarPhuongTien(QDateTime gpsTime,QString longitude, QString latitude, unsigned char GpsStates, QString cData ){
+    QString sqlInsertOrUpdateCar = QString("INSERT INTO tbl_phuongtien ("
+                                             "phuongtien_imei, "
+                                             "phuongtien_loaiphuongtien, "
+                                             "phuongtien_tochuc, "
+                                             "phuongtien_bienso, "
+                                             "phuongtien_laichinh, "
+                                             "phuongtien_phulai, "
+                                             "phuongtien_thoigian, "
+                                             "phuongtien_kinhdo, "
+                                             "phuongtien_vido, "
+                                             "phuongtien_vantoc_gps, "
+                                             "phuongtien_huong, "
+                                             "phuongtien_trangthaigps, "
+                                             "phuongtien_extdata) "
+                                             "VALUES (%1, %2, %3, '%4', %5, %6, '%7', %8, %9, %10, %11, %12, '%13') "
+                                             "ON DUPLICATE KEY UPDATE "
+                                             "phuongtien_imei = %1, "
+                                             "phuongtien_loaiphuongtien = %2, "
+                                             "phuongtien_laichinh = %5, "
+                                             "phuongtien_phulai = %6, "
+                                             "phuongtien_thoigian = '%7', "
+                                             "phuongtien_kinhdo = %8, "
+                                             "phuongtien_vido = %9, "
+                                             "phuongtien_vantoc_gps = %10, "
+                                             "phuongtien_huong = %11, "
+                                             "phuongtien_trangthaigps = %12, "
+                                             "phuongtien_extdata = '%13'")
+            .arg("' '") //imei
+            .arg(TYPE_CAR)
+            .arg(1) //to chuc
+            .arg(plateNumber) //bien so
+            .arg(1) //lai chinh
+            .arg(1) //phu lai
+            .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(longitude)
+            .arg(latitude)
+            .arg(QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER-1])) //van toc gps
+            .arg(QString::number(CarRevRec.Gps1sStart.Heading)) //huong
+            .arg(GpsStates)
+            .arg(cData);
+
+    if(connectionDatabase && connectionDatabase->execQuery(sqlInsertOrUpdateCar)){
+        return true;
+    }
+    return false;
+}
+
 bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table){
     QString sqlInsertTrainLog = QString("INSERT INTO "+ table + " ("
                                                                 "phuongtienlog_bienso, "
@@ -773,8 +896,41 @@ bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime
     return false;
 }
 
-//---------------------------------------------------------
+bool VehicleConnection::InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData){
+    QString sqlInsertCarLog = QString("INSERT INTO tbl_carlog ("
+                                                                "phuongtienlog_bienso, "
+                                                                "phuongtienlog_thoigian, "
+                                                                "phuongtienlog_kinhdo, "
+                                                                "phuongtienlog_vido, "
+                                                                "phuongtienlog_vantoc_gps, "
+                                                                "phuongtienlog_huong, "
+                                                                "phuongtienlog_trangthaigps, "
+                                                                "phuongtienlog_extdata ) "
+                                                                "VALUES ('%1', '%2', %3, %4, %5, %6, %7,'%8') ")
+            .arg(plateNumber)
+            .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(longitude)
+            .arg(latitude)
+            .arg(QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER - 1]))
+            .arg(QString::number(CarRevRec.Gps1sStart.Heading))
+            .arg(GpsStates)
+            .arg(cData);
 
+    if(connectionDatabase->execQuery(sqlInsertCarLog)){
+        return true;
+    }
+    return false;
+}
+//---------------------------------------------------------
+bool VehicleConnection::InsertLaixe(){
+    QString sqlInsertOrUpdateLaixe = QString("INSERT INTO tbl_laixe("
+                                             ""
+                                             ")");
+
+    return false;
+}
+
+//---------------------------------------------------------
 bool VehicleConnection::UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id) {
 
     QString sqlFinishRead = QString(
