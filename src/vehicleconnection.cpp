@@ -193,30 +193,27 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             break;
         case REC_GPS_DIF:
         {
+            qDebug() << plateNumber <<"---- BAN GHI TUONG DOI ----";
             if(plateNumber.isEmpty() || plateNumber.isEmpty()){
                 qDebug() << plateNumber << "break! plate number is empty";
                 break;
             }
             //Ban ghi GPS tuong doi
             memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
-            qDebug() << plateNumber <<"Ban ghi tuong doi";
+            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
             qDebug() << "lat: " << CarRevRec.Gps1sStart.Gps.Lat << " | long: " << CarRevRec.Gps1sStart.Gps.Long;
-            qDebug() << "Time "<< CarRevRec.Gps1sStart.Gps.DateTime.Hour
-                     << ":" << CarRevRec.Gps1sStart.Gps.DateTime.Min
-                     << ":" << CarRevRec.Gps1sStart.Gps.DateTime.Sec
-                     << " " << CarRevRec.Gps1sStart.Gps.DateTime.Day
-                     << "/" << CarRevRec.Gps1sStart.Gps.DateTime.Month
-                     << "/" << CarRevRec.Gps1sStart.Gps.DateTime.Year;
             qDebug() << "speed" << CarRevRec.Gps1sStart.Gps.Speed;
             qDebug() << "gps states" <<CarRevRec.Gps1sStart.GpsStates;
+            qDebug() << "time:" << gpsTime.toString("yyyy-MM-dd hh:mm:ss");
             QString speed;
             for(int i =0; i < TIME_CAR_SEND_DATA_SERVER; i++){
-                speed+= QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER - 1]) + " ";
+                speed+= QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER - 1]) + ",";
             }
             qDebug() << speed;
 
-            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
-            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
 
             longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
             latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
@@ -225,7 +222,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             QByteArray carRev((char*)Pck+1,sizeof(CarAbsRec));
             QString data = carRev.toHex();
             //insert car's data to tbl_phuongtienlog
-            if(InsertCarLog(gpsTime, longitude, latitude, GpsStates, data)) {
+            if(InsertCarLog(gpsTime, longitude, latitude, GpsStates, data, speed)) {
                 qDebug() << plateNumber << QString("%1 is inserted to tbl_phuongtienlog").arg(vehicleLabel);
             }
 
@@ -250,38 +247,55 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             //Ban ghi su kien nguoi dang nhap
             qDebug() << "---- USER DANG NHAP ----";
             memcpy(&Usr,Pck+1,sizeof(User));
+            gpsTime.setDate(QDate(Usr.GPS.Gps.DateTime.Year + 2000, Usr.GPS.Gps.DateTime.Month, Usr.GPS.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(Usr.GPS.Gps.DateTime.Hour, Usr.GPS.Gps.DateTime.Min, Usr.GPS.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            qDebug() << "---------------------";
+            QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
+            qDebug() << "uid "<<UIDhex.toHex();
+
             qDebug() << "time driver " << Usr.TimerDriver <<" minutes";
-            qDebug() <<  "uid " << Usr.uid;
             qDebug() << "event " << Usr.Event;
             qDebug() << "GPLX " << Usr.Giaypheplaixe;
-            qDebug() << "lat " << Usr.GPS.Gps.Lat << "long " << Usr.GPS.Gps.Long;
-            qDebug() << "Time "<< Usr.GPS.Gps.DateTime.Hour
-                     << ":" << Usr.GPS.Gps.DateTime.Min
-                     << ":" << Usr.GPS.Gps.DateTime.Sec
-                     << " " << Usr.GPS.Gps.DateTime.Day
-                     << "/" << Usr.GPS.Gps.DateTime.Month
-                     << "/" << Usr.GPS.Gps.DateTime.Year;
+            qDebug() << "lat " << latitude << "long " << longitude;
             qDebug() << "ho ten" << Usr.Hoten;
             qDebug() << "states" << Usr.States;
+            qDebug() << "time:" << gpsTime.toString("yyyy-MM-dd hh:mm:ss");
+
+            if(InsertLaixe(UIDhex.toHex(), Usr.Hoten, Usr.Giaypheplaixe, gpsTime, longitude, latitude, Usr.States)){
+                qDebug() << "insert lai xe " << Usr.Hoten;
+            }
+            // update table laixelog
             break;
         }
         case REC_USER_SIGNOUT://Ban ghi su kien nguoi dang xuat
+        {
             qDebug() << "-----USER DANG XUAT-----";
             memcpy(&Usr,Pck+1,l);
-            qDebug() << "time driver " << Usr.TimerDriver;
-            qDebug() <<  "uid " << Usr.uid;
+            gpsTime.setDate(QDate(Usr.GPS.Gps.DateTime.Year + 2000, Usr.GPS.Gps.DateTime.Month, Usr.GPS.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(Usr.GPS.Gps.DateTime.Hour, Usr.GPS.Gps.DateTime.Min, Usr.GPS.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            qDebug() << "---------------------";
+            QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
+            qDebug() << "uid "<<UIDhex.toHex();
+
+            qDebug() << "time driver " << Usr.TimerDriver <<" minutes";
             qDebug() << "event " << Usr.Event;
             qDebug() << "GPLX " << Usr.Giaypheplaixe;
-            qDebug() << "lat " << Usr.GPS.Gps.Lat << "long " << Usr.GPS.Gps.Long;
-            qDebug() << "Time "<< Usr.GPS.Gps.DateTime.Hour
-                     << ":" << Usr.GPS.Gps.DateTime.Min
-                     << ":" << Usr.GPS.Gps.DateTime.Sec
-                     << " " << Usr.GPS.Gps.DateTime.Day
-                     << "/" << Usr.GPS.Gps.DateTime.Month
-                     << "/" << Usr.GPS.Gps.DateTime.Year;
+            qDebug() << "lat " << latitude << "long " << longitude;
             qDebug() << "ho ten" << Usr.Hoten;
             qDebug() << "states" << Usr.States;
+            qDebug() << "time:" << gpsTime.toString("yyyy-MM-dd hh:mm:ss");
+            if(InsertLaixe(UIDhex.toHex(), Usr.Hoten, Usr.Giaypheplaixe, gpsTime, longitude, latitude, Usr.States)){
+                qDebug() << "insert lai xe " << Usr.Hoten;
+            }
+            // update table laixelog
             break;
+        }
         case REC_USER_OVERTIME://Qua thoi gian
             qDebug() << plateNumber <<"Qua thoi gian";
             break;
@@ -896,17 +910,18 @@ bool VehicleConnection::Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime
     return false;
 }
 
-bool VehicleConnection::InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData){
+bool VehicleConnection::InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString speed){
     QString sqlInsertCarLog = QString("INSERT INTO tbl_carlog ("
-                                                                "phuongtienlog_bienso, "
-                                                                "phuongtienlog_thoigian, "
-                                                                "phuongtienlog_kinhdo, "
-                                                                "phuongtienlog_vido, "
-                                                                "phuongtienlog_vantoc_gps, "
-                                                                "phuongtienlog_huong, "
-                                                                "phuongtienlog_trangthaigps, "
-                                                                "phuongtienlog_extdata ) "
-                                                                "VALUES ('%1', '%2', %3, %4, %5, %6, %7,'%8') ")
+                                                                "carlog_bienso, "
+                                                                "carlog_thoigian, "
+                                                                "carlog_kinhdo, "
+                                                                "carlog_vido, "
+                                                                "carlog_vantoc_gps, "
+                                                                "carlog_huong, "
+                                                                "carlog_trangthaigps, "
+                                                                "carlog_extdata, "
+                                                                "carlog_tocdotunggiay) "
+                                                                "VALUES ('%1', '%2', %3, %4, %5, %6, %7,'%8','%9') ")
             .arg(plateNumber)
             .arg(gpsTime.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(longitude)
@@ -914,7 +929,8 @@ bool VehicleConnection::InsertCarLog(QDateTime gpsTime, QString longitude, QStri
             .arg(QString::number(CarRevRec.Speed[TIME_CAR_SEND_DATA_SERVER - 1]))
             .arg(QString::number(CarRevRec.Gps1sStart.Heading))
             .arg(GpsStates)
-            .arg(cData);
+            .arg(cData)
+            .arg(speed);
 
     if(connectionDatabase->execQuery(sqlInsertCarLog)){
         return true;
@@ -922,12 +938,38 @@ bool VehicleConnection::InsertCarLog(QDateTime gpsTime, QString longitude, QStri
     return false;
 }
 //---------------------------------------------------------
-bool VehicleConnection::InsertLaixe(){
+bool VehicleConnection::InsertLaixe(QString uid, QString ten, QString gplx, QDateTime time, QString latitude, QString longitude, unsigned char states){
     QString sqlInsertOrUpdateLaixe = QString("INSERT INTO tbl_laixe("
-                                             ""
-                                             ")");
-
+                                             "laixe_uid, "
+                                             "laixe_ten, "
+                                             "laixe_thoigian,"
+                                             "laixe_lat,"
+                                             "laixe_long,"
+                                             "laixe_GPLX,"
+                                             "laixe_trangthai) "
+                                             "VALUES('%1','%2','%3',%4,%5,'%6',%7) "
+                                             "ON DUPLICATE KEY UPDATE "
+                                             "laixe_ten = '%2', "
+                                             "laixe_thoigian = '%3', "
+                                             "laixe_lat = %4, "
+                                             "laixe_long= %5, "
+                                             "laixe_GPLX = '%6',"
+                                             "laixe_trangthai = %7")
+                                            .arg(uid)
+                                            .arg(ten)
+                                            .arg(time.toString("yyyy-MM-dd hh:mm:ss"))
+                                            .arg(latitude)
+                                            .arg(longitude)
+                                            .arg(gplx)
+                                            .arg(states);
+    if(connectionDatabase && connectionDatabase->execQuery(sqlInsertOrUpdateLaixe)){
+        return true;
+    }
     return false;
+}
+
+bool VehicleConnection::InsertLaixeLog(){
+    QString InsertOrUpdateLaixeLog = QString("");
 }
 
 //---------------------------------------------------------

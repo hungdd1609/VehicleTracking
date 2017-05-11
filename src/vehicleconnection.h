@@ -230,9 +230,9 @@ private:
 
     bool Insert2PhuongTienLog(QString machuyen, QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString table);
     bool Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabel, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
-    bool InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData);
+    bool InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString speed);
     bool InsertCarPhuongTien(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
-    bool InsertLaixe();
+    bool InsertLaixe(QString id, QString ten, QString gplx, QDateTime time, QString latitude, QString longitude, unsigned char states);
     bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
     bool UpdateCommand(int id, QDateTime sent, int status);
     void GetListFileLogBytime(QDateTime Start,QDateTime End,QString Filter);
