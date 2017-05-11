@@ -268,6 +268,9 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 qDebug() << "insert lai xe " << Usr.Hoten;
             }
             // update table laixelog
+            if(InsertLaixeLogSignin(UIDhex.toHex(), plateNumber, gpsTime, longitude, latitude)){
+                qDebug() << "insert "<< Usr.Hoten <<" login";
+            }
             break;
         }
         case REC_USER_SIGNOUT://Ban ghi su kien nguoi dang xuat
@@ -294,16 +297,19 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
                 qDebug() << "insert lai xe " << Usr.Hoten;
             }
             // update table laixelog
+            if(InsertLaixeLogSignout(UIDhex.toHex(), plateNumber, gpsTime, longitude, latitude, Usr.TimerDriver)){
+                qDebug() << "insert " << Usr.Hoten << "logout";
+            }
             break;
         }
         case REC_USER_OVERTIME://Qua thoi gian
             qDebug() << plateNumber <<"Qua thoi gian";
             break;
         case REC_VEHICLE_STOP:// dung
-            qDebug() << plateNumber <<"Dung xe";
+            qDebug() << plateNumber <<"---- DUNG XE ----";
             break;
         case REC_VEHICLE_RUN:
-            qDebug() << plateNumber <<"Do xe";
+            qDebug() << plateNumber <<"---- DO XE ----";
             break;
         case REC_DIRVER_OVER_DAY:
             qDebug() << plateNumber <<"Lai qua ngay";
@@ -968,8 +974,48 @@ bool VehicleConnection::InsertLaixe(QString uid, QString ten, QString gplx, QDat
     return false;
 }
 
-bool VehicleConnection::InsertLaixeLog(){
-    QString InsertOrUpdateLaixeLog = QString("");
+bool VehicleConnection::InsertLaixeLogSignin(QString uid, QString bienso, QDateTime thoigianbatdau, QString kinhdobatdau, QString vidobatdau){
+    QString InsertLaixeLogSigin = QString("INSERT INTO tbl_laixelog("
+                                             "laixelog_uid,"
+                                             "laixelog_bienso,"
+                                             "laixelog_type,"
+                                             "laixelog_thoigianbatdau,"
+                                             "laixelog_kinhdobatdau,"
+                                             "laixelog_vidobatdau) "
+                                             "VALUES('%1','%2',%3,'%4',%5,%6)")
+            .arg(uid)
+            .arg(bienso)
+            .arg(REC_USER_SIGNIN)
+            .arg(thoigianbatdau.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(kinhdobatdau)
+            .arg(vidobatdau);
+    if(connectionDatabase && connectionDatabase->execQuery(InsertLaixeLogSigin)){
+        return true;
+    }
+    return false;
+}
+
+bool VehicleConnection::InsertLaixeLogSignout(QString uid, QString bienso, QDateTime thoigianketthuc, QString kinhdoketthuc, QString vidoketthuc, int timeDrive){
+    QString InsertLaixeLogSignout = QString("UPDATE tbl_laixelog SET "
+                                             "laixelog_thoigianketthuc = '%4',"
+                                             "laixelog_kinhdoketthuc = %5,"
+                                             "laixelog_vidoketthuc = %6,"
+                                             "laixelog_thoigianlaixe = %8,"
+                                             "laixelog_type = %3 "
+                                             "WHERE laixelog_uid = '%1' && laixelog_bienso = '%2' && laixelog_type = %7")
+            .arg(uid)
+            .arg(bienso)
+            .arg(REC_USER_SIGNOUT)
+            .arg(thoigianketthuc.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(kinhdoketthuc)
+            .arg(vidoketthuc)
+            .arg(REC_USER_SIGNIN)
+            .arg(timeDrive);
+
+    if(connectionDatabase && connectionDatabase->execQuery(InsertLaixeLogSignout)){
+        return true;
+    }
+    return false;
 }
 
 //---------------------------------------------------------
