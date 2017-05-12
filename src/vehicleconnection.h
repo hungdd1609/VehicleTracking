@@ -239,6 +239,7 @@ private:
     bool InsertLaixeLogSignout(QString uid, QString bienso, QDateTime thoigianketthuc, QString kinhdoketthuc, QString vidoketthuc, int timeDrive);
     bool InsertLaixeLogStop(QString uid, QString bienso, QDateTime thoidiem, QString kinhdo, QString vido);
     bool InsertLaixeLogRun(QString uid, QString bienso, QDateTime thoidiem, int timeSpan);
+    bool InsertLaixeLogOverDay(QString uid, QString bienso, QDateTime thoidiem);
 
     bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
     bool UpdateCommand(int id, QDateTime sent, int status);

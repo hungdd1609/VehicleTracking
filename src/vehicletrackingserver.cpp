@@ -483,6 +483,8 @@ void VehicleTrackingServer::slot_mainTimer_timeout(){
     createPartition("tbl_phuongtienlog");
     createPartition("tbl_event");
     createPartition("tbl_phuongtienlog2");
+    createPartition("tbl_carlog");
+    createPartition("tbl_laixelog");
 
     //-/ tach hanh trinh
     //-/-/scan log online

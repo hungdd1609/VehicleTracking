@@ -346,14 +346,30 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             }
             qDebug() << stopTime << "-------------------------------------------";
 
-            if(InsertLaixeLogRun(UIDhex.toHex(), plateNumber, stopTime, 5 + 15)){
+            int timeSpan = stopTime.secsTo(current)/60 + 15;
+            if(InsertLaixeLogRun(UIDhex.toHex(), plateNumber, stopTime, timeSpan)){
                 qDebug() << "xe chay" << plateNumber;
             }
             break;
         }
         case REC_DIRVER_OVER_DAY:
-            qDebug() << plateNumber <<"Lai qua ngay";
+        {
+            qDebug() << plateNumber <<"---- LAI QUA NGAY ----";
+            memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
+            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            qDebug() << "---------------------";
+            QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
+            qDebug() << "uid "<<UIDhex.toHex();
+
+            if(InsertLaixeLogOverDay(UIDhex.toHex(), plateNumber, gpsTime)){
+                qDebug() << "lai xe qua ngay inserted" << plateNumber;
+            }
             break;
+        }
         case REC_DIRVER_OVER_SPEED:
             qDebug() << plateNumber <<"Qua van toc";
             break;
@@ -1063,9 +1079,9 @@ bool VehicleConnection::InsertLaixeLogStop(QString uid, QString bienso, QDateTim
                                              "laixelog_uid,"
                                              "laixelog_bienso,"
                                              "laixelog_type,"
-                                             "laixelog_thoidiemdungxe,"
-                                             "laixelog_kinhdodungxe,"
-                                             "laixelog_vidodungxe) "
+                                             "laixelog_thoigianbatdau,"
+                                             "laixelog_kinhdobatdau,"
+                                             "laixelog_vidobatdau) "
                                              "VALUES('%1', '%2', %3, '%4', %5, %6)")
             .arg(uid)
             .arg(bienso)
@@ -1084,20 +1100,36 @@ bool VehicleConnection::InsertLaixeLogRun(QString uid, QString bienso, QDateTime
     QString sqlInsertLaixeLogRun = QString("UPDATE tbl_laixelog SET "
                                              "laixelog_type = %5,"
                                              "laixelog_thoigiandungxe = '%6' "
-                                             "WHERE laixelog_uid = '%1' AND laixelog_bienso = '%2' AND laixelog_thoidiemdungxe= '%4' AND laixelog_type = %3")
+                                             "WHERE laixelog_uid = '%1' AND laixelog_bienso = '%2' AND laixelog_thoigianbatdau= '%4' AND laixelog_type = %3")
             .arg(uid)
             .arg(bienso)
             .arg(REC_VEHICLE_STOP)
             .arg(thoidiem.toString("yyyy-MM-dd hh:mm:ss"))
             .arg(REC_VEHICLE_RUN)
             .arg(timeSpan);
-qDebug() << sqlInsertLaixeLogRun;
+    qDebug() << sqlInsertLaixeLogRun;
     if(connectionDatabase && connectionDatabase->execQuery(sqlInsertLaixeLogRun)){
         return true;
     }
     return false;
 }
 
+bool VehicleConnection::InsertLaixeLogOverDay(QString uid, QString bienso, QDateTime thoidiem){
+    QString sqlInsertLaixeLogOverDay = QString("INSERT INTO tbl_laixelog("
+                                               "laixelog_uid,"
+                                               "laixelog_bienso,"
+                                               "laixelog_type,"
+                                               "laixelog_thoigianbatdau) "
+                                               "VALUES('%1', '%2', %3, '%4')")
+            .arg(uid)
+            .arg(bienso)
+            .arg(REC_DIRVER_OVER_DAY)
+            .arg(thoidiem.toString("yyyy-MM-dd hh:mm:ss"));
+    if(connectionDatabase && connectionDatabase->execQuery(sqlInsertLaixeLogOverDay)){
+        return true;
+    }
+    return false;
+}
 
 //---------------------------------------------------------
 bool VehicleConnection::UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id) {
