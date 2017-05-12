@@ -173,7 +173,7 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
     unsigned char l;
     QString eTime, vehicleLabel, TrainRecStr;
     QString longitude, latitude;
-    QDateTime gpsTime, lastTime, current;
+    QDateTime gpsTime, lastTime, current, stopTime;
     PBuff[0]=128;
     TotalRevPCk++;
 
@@ -250,8 +250,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             gpsTime.setDate(QDate(Usr.GPS.Gps.DateTime.Year + 2000, Usr.GPS.Gps.DateTime.Month, Usr.GPS.Gps.DateTime.Day));
             gpsTime.setTime(QTime(Usr.GPS.Gps.DateTime.Hour, Usr.GPS.Gps.DateTime.Min, Usr.GPS.Gps.DateTime.Sec, 0));
 
-            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
-            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(Usr.GPS.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(Usr.GPS.Gps.Lat),'f',9);
             qDebug() << "---------------------";
             QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
             qDebug() << "uid "<<UIDhex.toHex();
@@ -280,8 +280,8 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             gpsTime.setDate(QDate(Usr.GPS.Gps.DateTime.Year + 2000, Usr.GPS.Gps.DateTime.Month, Usr.GPS.Gps.DateTime.Day));
             gpsTime.setTime(QTime(Usr.GPS.Gps.DateTime.Hour, Usr.GPS.Gps.DateTime.Min, Usr.GPS.Gps.DateTime.Sec, 0));
 
-            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
-            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(Usr.GPS.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(Usr.GPS.Gps.Lat),'f',9);
             qDebug() << "---------------------";
             QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
             qDebug() << "uid "<<UIDhex.toHex();
@@ -306,11 +306,51 @@ void VehicleConnection::Sys7bProcessRevPck(unsigned char* Pck,unsigned short len
             qDebug() << plateNumber <<"Qua thoi gian";
             break;
         case REC_VEHICLE_STOP:// dung
+        {
             qDebug() << plateNumber <<"---- DUNG XE ----";
+            memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
+            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            qDebug() << "---------------------";
+            QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
+            qDebug() << "uid "<<UIDhex.toHex();
+
+            if(InsertLaixeLogStop(UIDhex.toHex(), plateNumber, gpsTime,longitude, latitude)){
+                qDebug() << "insert dung xe" << plateNumber;
+            }
             break;
+        }
         case REC_VEHICLE_RUN:
+        {
             qDebug() << plateNumber <<"---- DO XE ----";
+            memcpy(&CarRevRec,Pck+1,sizeof(CarAbsRec));
+            gpsTime.setDate(QDate(CarRevRec.Gps1sStart.Gps.DateTime.Year + 2000, CarRevRec.Gps1sStart.Gps.DateTime.Month, CarRevRec.Gps1sStart.Gps.DateTime.Day));
+            gpsTime.setTime(QTime(CarRevRec.Gps1sStart.Gps.DateTime.Hour, CarRevRec.Gps1sStart.Gps.DateTime.Min, CarRevRec.Gps1sStart.Gps.DateTime.Sec, 0));
+
+            longitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Long),'f',9);
+            latitude = QString::number(ConvertGPSdegreeToGPSDecimal(CarRevRec.Gps1sStart.Gps.Lat),'f',9);
+            qDebug() << "---------------------";
+            QByteArray UIDhex = QByteArray((char*)Usr.uid,24);
+            qDebug() << "uid "<<UIDhex.toHex();
+
+            QString sqlScanDevice = QString("SELECT laixelog_thoidiemdungxe FROM tbl_laixelog WHERE laixelog_bienso = '%1' AND laixelog_type = %2 AND laixelog_thoidiemdungxe IS NOT NULL ORDER BY laixelog_thoidiemdungxe DESC")
+                    .arg(plateNumber)
+                    .arg(REC_VEHICLE_STOP);
+            QSqlQuery query;
+            connectionDatabase->execQuery(query, sqlScanDevice);
+            if (query.next()) {
+                stopTime = query.value(0).toDateTime();
+            }
+            qDebug() << stopTime << "-------------------------------------------";
+
+            if(InsertLaixeLogRun(UIDhex.toHex(), plateNumber, stopTime, 5 + 15)){
+                qDebug() << "xe chay" << plateNumber;
+            }
             break;
+        }
         case REC_DIRVER_OVER_DAY:
             qDebug() << plateNumber <<"Lai qua ngay";
             break;
@@ -1002,7 +1042,7 @@ bool VehicleConnection::InsertLaixeLogSignout(QString uid, QString bienso, QDate
                                              "laixelog_vidoketthuc = %6,"
                                              "laixelog_thoigianlaixe = %8,"
                                              "laixelog_type = %3 "
-                                             "WHERE laixelog_uid = '%1' && laixelog_bienso = '%2' && laixelog_type = %7")
+                                             "WHERE laixelog_uid = '%1' AND laixelog_bienso = '%2' AND laixelog_type = %7")
             .arg(uid)
             .arg(bienso)
             .arg(REC_USER_SIGNOUT)
@@ -1017,6 +1057,47 @@ bool VehicleConnection::InsertLaixeLogSignout(QString uid, QString bienso, QDate
     }
     return false;
 }
+
+bool VehicleConnection::InsertLaixeLogStop(QString uid, QString bienso, QDateTime thoidiem, QString kinhdo, QString vido){
+    QString sqlInsertLaixeLogStop = QString("INSERT INTO tbl_laixelog("
+                                             "laixelog_uid,"
+                                             "laixelog_bienso,"
+                                             "laixelog_type,"
+                                             "laixelog_thoidiemdungxe,"
+                                             "laixelog_kinhdodungxe,"
+                                             "laixelog_vidodungxe) "
+                                             "VALUES('%1', '%2', %3, '%4', %5, %6)")
+            .arg(uid)
+            .arg(bienso)
+            .arg(REC_VEHICLE_STOP)
+            .arg(thoidiem.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(kinhdo)
+            .arg(vido);
+
+    if(connectionDatabase && connectionDatabase->execQuery(sqlInsertLaixeLogStop)){
+        return true;
+    }
+    return false;
+}
+
+bool VehicleConnection::InsertLaixeLogRun(QString uid, QString bienso, QDateTime thoidiem, int timeSpan){
+    QString sqlInsertLaixeLogRun = QString("UPDATE tbl_laixelog SET "
+                                             "laixelog_type = %5,"
+                                             "laixelog_thoigiandungxe = '%6' "
+                                             "WHERE laixelog_uid = '%1' AND laixelog_bienso = '%2' AND laixelog_thoidiemdungxe= '%4' AND laixelog_type = %3")
+            .arg(uid)
+            .arg(bienso)
+            .arg(REC_VEHICLE_STOP)
+            .arg(thoidiem.toString("yyyy-MM-dd hh:mm:ss"))
+            .arg(REC_VEHICLE_RUN)
+            .arg(timeSpan);
+qDebug() << sqlInsertLaixeLogRun;
+    if(connectionDatabase && connectionDatabase->execQuery(sqlInsertLaixeLogRun)){
+        return true;
+    }
+    return false;
+}
+
 
 //---------------------------------------------------------
 bool VehicleConnection::UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id) {
@@ -1234,7 +1315,7 @@ void VehicleConnection::slot_socketDestroyed(){
     qDebug()<< "VehicleConnection::slot_socketDestroyed()";
 }
 
-void VehicleConnection::slot_requestInfoTimer(){    
+void VehicleConnection::slot_requestInfoTimer(){
     //down file
     //-/ Query downfile
     if (readFileMng.Id == 0 || readFileMng.Status == LOG_FILE_DONE || readFileMng.Status == LOG_FILE_ERROR) {

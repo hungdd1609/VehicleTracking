@@ -205,6 +205,7 @@ private:
     QTimer *requestLogTimer;
     QTcpSocket *tcpSocket;
     QDateTime lastRecvTime;
+    QDateTime stopTime;
     QString plateNumber;
     QString rawData;
     int state;
@@ -232,9 +233,13 @@ private:
     bool Insert2PhuongTien(QDateTime gpsTime, QString vehicleLabel, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
     bool InsertCarLog(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString  cData, QString speed);
     bool InsertCarPhuongTien(QDateTime gpsTime, QString longitude, QString latitude, unsigned char GpsStates, QString cData );
+
     bool InsertLaixe(QString id, QString ten, QString gplx, QDateTime time, QString latitude, QString longitude, unsigned char states);
     bool InsertLaixeLogSignin(QString uid, QString bienso, QDateTime thoigianbatdau, QString kinhdobatdau, QString vidobatdau);
     bool InsertLaixeLogSignout(QString uid, QString bienso, QDateTime thoigianketthuc, QString kinhdoketthuc, QString vidoketthuc, int timeDrive);
+    bool InsertLaixeLogStop(QString uid, QString bienso, QDateTime thoidiem, QString kinhdo, QString vido);
+    bool InsertLaixeLogRun(QString uid, QString bienso, QDateTime thoidiem, int timeSpan);
+
     bool UpdateLogFile(int trangthai, QDateTime batdau, QDateTime ketthuc, int size, int block, QString duongdan, int id);
     bool UpdateCommand(int id, QDateTime sent, int status);
     void GetListFileLogBytime(QDateTime Start,QDateTime End,QString Filter);
